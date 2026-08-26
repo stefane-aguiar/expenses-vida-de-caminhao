@@ -43,17 +43,17 @@
 
   .row-controls{ display:flex; flex-wrap:wrap; align-items:flex-end; gap:14px; margin-bottom:18px; }
   .field{ display:flex; flex-direction:column; gap:6px; }
-  .field label{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.08em; }
+  .field label{ font-family:'IBM Plex Mono',monospace; font-size:12px; color:var(--ink-dim); text-transform:uppercase; letter-spacing:.08em; }
   select{
     background: var(--surface-2); color: var(--paper); border:1px solid var(--line);
-    font-family:'IBM Plex Mono',monospace; font-size:14px; font-weight:600;
-    padding:9px 12px; border-radius:6px; min-width:150px; cursor:pointer;
+    font-family:'IBM Plex Mono',monospace; font-size:15px; font-weight:600;
+    padding:10px 13px; border-radius:6px; min-width:160px; cursor:pointer;
   }
   select:focus-visible{ outline:2px solid var(--gold); outline-offset:2px; }
   .chip-row{ display:flex; gap:6px; flex-wrap:wrap; }
   .chip{
-    font-family:'IBM Plex Mono',monospace; font-size:11px; background:var(--surface-2); border:1px solid var(--line);
-    color:var(--ink-dim); padding:8px 12px; border-radius:20px; cursor:pointer;
+    font-family:'IBM Plex Mono',monospace; font-size:12px; background:var(--surface-2); border:1px solid var(--line);
+    color:var(--ink-dim); padding:9px 13px; border-radius:20px; cursor:pointer;
   }
   .chip:hover{ border-color: var(--gold-dim); color: var(--paper); }
 
@@ -69,34 +69,35 @@
   }
   .receipt::before{ top:-1px; } .receipt::after{ bottom:-1px; transform:rotate(180deg); }
   .receipt-title{
-    font-family:'IBM Plex Mono',monospace; font-size:11px; letter-spacing:.14em; text-transform:uppercase;
+    font-family:'IBM Plex Mono',monospace; font-size:12px; letter-spacing:.14em; text-transform:uppercase;
     color:var(--ink-dim); border-bottom:1px dashed var(--line); padding-bottom:14px; margin-bottom:16px; display:flex; justify-content:space-between;
   }
-  .receipt-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:18px; }
-  .receipt-item .k{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:6px; }
-  .receipt-item .v{ font-family:'IBM Plex Mono',monospace; font-size:22px; font-weight:600; color:var(--paper); }
+  .receipt-grid{ display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:18px; }
+  .receipt-item .k{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; letter-spacing:.08em; text-transform:uppercase; color:var(--ink-dim); margin-bottom:6px; }
+  .receipt-item .v{ font-family:'IBM Plex Mono',monospace; font-size:24px; font-weight:600; color:var(--paper); }
   .receipt-item .v.gold{ color:var(--gold); }
-  .receipt-item .sub{ font-family:'Inter'; font-size:12px; color:var(--ink-dim); margin-top:3px; }
+  .receipt-item .sub{ font-family:'Inter'; font-size:13px; color:var(--ink-dim); margin-top:3px; }
 
   .card{ background:var(--surface); border:1px solid var(--line); border-radius:10px; padding:20px 20px 8px; margin-bottom:20px; }
-  .card h2{ font-family:'Fraunces',serif; font-size:16px; font-weight:600; margin:0 0 4px; color:var(--paper); }
-  .card .hint{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; color:var(--ink-dim); margin-bottom:12px; display:block; }
+  .card h2{ font-family:'Fraunces',serif; font-size:18px; font-weight:600; margin:0 0 4px; color:var(--paper); }
+  .card .hint{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; color:var(--ink-dim); margin-bottom:12px; display:block; }
   .chart-box{ position:relative; height:280px; }
   .chart-box.small{ height:220px; }
-  .chart-box.tall{ height:340px; }
+  .chart-box.short{ height:170px; }
+  .chart-box.medium{ height:280px; }
+  .chart-box.tall{ height:380px; }
 
   .cat-card-head{ display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px; margin-bottom:4px; }
-  .cat-card-head .name{ font-family:'Fraunces',serif; font-size:17px; font-weight:600; color:var(--paper); }
-  .cat-card-head .figs{ font-family:'IBM Plex Mono',monospace; font-size:13px; color:var(--ink-dim); }
+  .cat-card-head .name{ font-family:'Fraunces',serif; font-size:19px; font-weight:600; color:var(--paper); }
+  .cat-card-head .figs{ font-family:'IBM Plex Mono',monospace; font-size:14px; color:var(--ink-dim); }
   .cat-card-head .figs b{ color:var(--gold); font-weight:600; }
-  .cat-grid{ display:grid; grid-template-columns: 2fr 1fr; gap:16px; margin-top:10px; }
-  @media (max-width:760px){ .cat-grid{ grid-template-columns:1fr; } }
-  .cat-trend-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(360px,1fr)); gap:16px; margin-top:10px; }
-  .cat-trend-item h3{ font-family:'Fraunces',serif; font-size:14px; font-weight:600; margin:0 0 8px; color:var(--paper); }
+  .cat-grid{ display:grid; grid-template-columns: 1fr; gap:14px; margin-top:10px; }
+  .cat-trend-grid{ display:grid; grid-template-columns: 1fr; gap:22px; margin-top:10px; }
+  .cat-trend-item h3{ font-family:'Fraunces',serif; font-size:16px; font-weight:600; margin:0 0 8px; color:var(--paper); }
 
-  table{ width:100%; border-collapse:collapse; font-size:13.5px; }
-  th{ text-align:left; font-family:'IBM Plex Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-dim); padding:8px 10px; border-bottom:1px solid var(--line); }
-  td{ padding:9px 10px; border-bottom:1px solid rgba(255,255,255,0.04); color:var(--ink); }
+  table{ width:100%; border-collapse:collapse; font-size:14.5px; }
+  th{ text-align:left; font-family:'IBM Plex Mono',monospace; font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-dim); padding:9px 10px; border-bottom:1px solid var(--line); }
+  td{ padding:10px 10px; border-bottom:1px solid rgba(255,255,255,0.04); color:var(--ink); }
   td.val{ font-family:'IBM Plex Mono',monospace; text-align:right; color:var(--paper); }
   tr:hover td{ background: rgba(212,169,78,0.05); }
 
@@ -245,7 +246,7 @@ function norm(s){ return (s||'').toString().trim().toLowerCase().replace(/\s+/g,
 function monthSortKey(m){ const [mm,yyyy]=m.split('/').map(Number); return yyyy*12+mm; }
 function monthLabel(m){ const [mm,yyyy]=m.split('/'); return `${MONTH_NAMES[parseInt(mm,10)-1]} ${yyyy}`; }
 function fmtBRL(n){ return n.toLocaleString('pt-BR',{style:'currency',currency:'BRL'}); }
-function fmtBRLShort(n){ return fmtBRL(n).replace(',00',''); }
+function fmtBRLShort(n){ return Math.round(n).toLocaleString('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0}); }
 
 function fetchCSV(url){
   return new Promise((resolve,reject) => {
@@ -416,14 +417,14 @@ function renderMonth(selectedMonth){
     },
     options: {
       indexAxis: 'y', responsive:true, maintainAspectRatio:false,
-      layout: { padding: { right: 60 } },
+      layout: { padding: { right: 70 } },
       plugins: {
         legend:{display:false}, tooltip:{ callbacks:{ label: ctx => fmtBRL(ctx.parsed.x) } },
-        datalabels: { display:true, color:'#e9e4d8', anchor:'end', align:'right', font:{size:12,weight:'600'}, formatter: v => fmtBRLShort(v) }
+        datalabels: { display:true, color:'#e9e4d8', anchor:'end', align:'right', font:{size:13,weight:'600'}, formatter: v => fmtBRLShort(v) }
       },
       scales: {
-        x: { ticks:{ color:'#93a598', callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } },
-        y: { ticks:{ color:'#e9e4d8', font:{size:12} }, grid:{ display:false } }
+        x: { ticks:{ color:'#93a598', font:{size:12}, callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } },
+        y: { ticks:{ color:'#e9e4d8', font:{size:13} }, grid:{ display:false } }
       }
     }
   });
@@ -461,8 +462,8 @@ function renderCategoryCards(monthRows){
       </div>
       <span class="hint">gasto por subcategoria vs. meta de cada uma</span>
       <div class="cat-grid">
-        <div class="chart-box small"><canvas id="${barId}"></canvas></div>
-        <div class="chart-box small"><canvas id="${miniId}"></canvas></div>
+        <div class="chart-box"><canvas id="${barId}"></canvas></div>
+        <div class="chart-box short"><canvas id="${miniId}"></canvas></div>
       </div>`;
     container.appendChild(card);
 
@@ -484,15 +485,15 @@ function renderCategoryCards(monthRows){
       },
       options: {
         responsive:true, maintainAspectRatio:false,
-        layout: { padding: { top: 22 } },
+        layout: { padding: { top: 26 } },
         plugins: {
-          legend:{ position:'bottom', labels:{ color:'#e9e4d8', boxWidth:10, font:{size:10} } },
+          legend:{ position:'bottom', labels:{ color:'#e9e4d8', boxWidth:11, font:{size:12} } },
           tooltip:{ callbacks:{ label: ctx => `${ctx.dataset.label}: ${fmtBRL(ctx.parsed.y)}` } },
-          datalabels: { display:true, color:'#e9e4d8', anchor:'end', align:'top', font:{size:9,weight:'600'}, formatter: v => fmtBRLShort(v) }
+          datalabels: { display:true, color:'#e9e4d8', anchor:'end', align:'top', font:{size:11,weight:'600'}, formatter: v => fmtBRLShort(v) }
         },
         scales: {
-          x: { ticks:{ color:'#93a598', font:{size:9}, maxRotation:55, minRotation:35 }, grid:{ display:false } },
-          y: { ticks:{ color:'#93a598', font:{size:9}, callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } }
+          x: { ticks:{ color:'#93a598', font:{size:11}, maxRotation:60, minRotation:40 }, grid:{ display:false } },
+          y: { ticks:{ color:'#93a598', font:{size:11}, callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } }
         }
       }
     });
@@ -502,14 +503,14 @@ function renderCategoryCards(monthRows){
       data: { labels:['Gasto','Meta'], datasets:[{ data:[catTotal, catInfo.metaTotal], backgroundColor:[color, '#3a4a40'], borderRadius:4 }] },
       options: {
         indexAxis:'y', responsive:true, maintainAspectRatio:false,
-        layout: { padding: { right: 55 } },
+        layout: { padding: { right: 65 } },
         plugins: {
           legend:{display:false}, tooltip:{ callbacks:{ label: ctx => fmtBRL(ctx.parsed.x) } },
-          datalabels: { display:true, color:'#e9e4d8', anchor:'end', align:'right', font:{size:10,weight:'600'}, formatter: v => fmtBRLShort(v) }
+          datalabels: { display:true, color:'#e9e4d8', anchor:'end', align:'right', font:{size:12,weight:'600'}, formatter: v => fmtBRLShort(v) }
         },
         scales: {
-          x: { ticks:{ color:'#93a598', font:{size:9}, callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } },
-          y: { ticks:{ color:'#e9e4d8', font:{size:10} }, grid:{ display:false } }
+          x: { ticks:{ color:'#93a598', font:{size:11}, callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } },
+          y: { ticks:{ color:'#e9e4d8', font:{size:12} }, grid:{ display:false } }
         }
       }
     });
@@ -598,23 +599,23 @@ function renderTrend(){
       labels: range.map(monthLabel),
       datasets: [
         { type:'bar', label:'Gasto total', data: totals, backgroundColor:'#d4a94e', borderRadius:4,
-          datalabels: { display:true, color:'#e9e4d8', anchor:'end', align:'top', font:{size:10,weight:'600'}, formatter: v => fmtBRLShort(v) } },
+          datalabels: { display:true, color:'#e9e4d8', anchor:'end', align:'top', font:{size:12,weight:'600'}, formatter: v => fmtBRLShort(v) } },
         { type:'line', label:'Meta mensal', data: range.map(()=>globalMetaTotal), borderColor:'#c1613f', borderDash:[6,4], pointRadius:0, borderWidth:2, tension:0,
           datalabels: { display:false } }
       ]
     },
     options: {
       responsive:true, maintainAspectRatio:false,
-      layout: { padding: { top: 20 } },
-      plugins: { legend:{ position:'bottom', labels:{ color:'#e9e4d8' } }, tooltip:{ callbacks:{ label: ctx => `${ctx.dataset.label}: ${fmtBRL(ctx.parsed.y)}` } } },
+      layout: { padding: { top: 24 } },
+      plugins: { legend:{ position:'bottom', labels:{ color:'#e9e4d8', font:{size:13} } }, tooltip:{ callbacks:{ label: ctx => `${ctx.dataset.label}: ${fmtBRL(ctx.parsed.y)}` } } },
       scales: {
-        x: { ticks:{ color:'#93a598', font:{size:10}, maxRotation:60, minRotation:60 }, grid:{ display:false } },
-        y: { ticks:{ color:'#93a598', callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } }
+        x: { ticks:{ color:'#93a598', font:{size:12} }, grid:{ display:false } },
+        y: { ticks:{ color:'#93a598', font:{size:12}, callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } }
       }
     }
   });
 
-  // Chart B: um gráfico por categoria (gasto + linha fixa de meta)
+  // Chart B: um gráfico por categoria (gasto + linha fixa de meta) — empilhados, um por linha
   const grid = document.getElementById('categoryTrendGrid');
   grid.innerHTML = '';
   Object.keys(catMap).forEach(cat => {
@@ -623,7 +624,7 @@ function renderTrend(){
     const item = document.createElement('div');
     item.className = 'cat-trend-item';
     const canvasId = `trendcat_${cat.replace(/[^a-zA-Z0-9]/g,'')}`;
-    item.innerHTML = `<h3>${cat}</h3><div class="chart-box small"><canvas id="${canvasId}"></canvas></div>`;
+    item.innerHTML = `<h3>${cat}</h3><div class="chart-box medium"><canvas id="${canvasId}"></canvas></div>`;
     grid.appendChild(item);
 
     if(categoryTrendCharts[cat]) categoryTrendCharts[cat].destroy();
@@ -632,19 +633,19 @@ function renderTrend(){
         labels: range.map(monthLabel),
         datasets: [
           { type:'line', label:'Gasto', data, borderColor: color, backgroundColor: color, pointRadius:3, borderWidth:2, tension:0.15,
-            datalabels: { display:true, color:'#e9e4d8', anchor:'end', align:'top', font:{size:9,weight:'600'}, formatter: v => fmtBRLShort(v) } },
+            datalabels: { display:true, color:'#e9e4d8', anchor:'end', align:'top', font:{size:11,weight:'600'}, formatter: v => fmtBRLShort(v) } },
           { type:'line', label:'Meta', data: range.map(()=>catMap[cat].metaTotal), borderColor: color, borderDash:[5,4], pointRadius:0, borderWidth:1.5, tension:0,
             datalabels: { display:false } }
         ]
       },
       options: {
         responsive:true, maintainAspectRatio:false,
-        layout: { padding: { top: 18 } },
-        plugins: { legend:{ position:'bottom', labels:{ color:'#e9e4d8', boxWidth:10, font:{size:10} } },
+        layout: { padding: { top: 20 } },
+        plugins: { legend:{ position:'bottom', labels:{ color:'#e9e4d8', boxWidth:11, font:{size:12} } },
                    tooltip:{ callbacks:{ label: ctx => `${ctx.dataset.label}: ${fmtBRL(ctx.parsed.y)}` } } },
         scales: {
-          x: { ticks:{ color:'#93a598', font:{size:9}, maxRotation:60, minRotation:60 }, grid:{ display:false } },
-          y: { ticks:{ color:'#93a598', font:{size:9}, callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } }
+          x: { ticks:{ color:'#93a598', font:{size:12} }, grid:{ display:false } },
+          y: { ticks:{ color:'#93a598', font:{size:12}, callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } }
         }
       }
     });
@@ -664,19 +665,19 @@ function renderTrend(){
         labels: range.map(monthLabel),
         datasets: [
           { type:'line', label:'Gasto', data, borderColor: color, backgroundColor: color, pointRadius:3, borderWidth:2, tension:0.15,
-            datalabels: { display:true, color:'#e9e4d8', anchor:'end', align:'top', font:{size:10,weight:'600'}, formatter: v => fmtBRLShort(v) } },
+            datalabels: { display:true, color:'#e9e4d8', anchor:'end', align:'top', font:{size:12,weight:'600'}, formatter: v => fmtBRLShort(v) } },
           { type:'line', label:'Meta', data: range.map(()=>subInfo.meta), borderColor: color, borderDash:[5,4], pointRadius:0, borderWidth:1.5, tension:0,
             datalabels: { display:false } }
         ]
       },
       options: {
         responsive:true, maintainAspectRatio:false,
-        layout: { padding: { top: 20 } },
-        plugins: { legend:{ position:'bottom', labels:{ color:'#e9e4d8' } },
+        layout: { padding: { top: 24 } },
+        plugins: { legend:{ position:'bottom', labels:{ color:'#e9e4d8', font:{size:13} } },
                    tooltip:{ callbacks:{ label: ctx => `${ctx.dataset.label}: ${fmtBRL(ctx.parsed.y)}` } } },
         scales: {
-          x: { ticks:{ color:'#93a598', font:{size:10}, maxRotation:60, minRotation:60 }, grid:{ display:false } },
-          y: { ticks:{ color:'#93a598', callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } }
+          x: { ticks:{ color:'#93a598', font:{size:12} }, grid:{ display:false } },
+          y: { ticks:{ color:'#93a598', font:{size:12}, callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } }
         }
       }
     });
