@@ -95,6 +95,8 @@
   .cat-trend-grid{ display:grid; grid-template-columns: 1fr; gap:22px; margin-top:10px; }
   .cat-trend-item h3{ font-family:'Fraunces',serif; font-size:16px; font-weight:600; margin:0 0 8px; color:var(--paper); }
   .invest-pie-grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap:28px 24px; margin-top:10px; }
+  .invest-table-grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap:24px; margin-top:22px; }
+  @media (max-width:640px){ .invest-table-grid{ grid-template-columns:1fr; } }
   .invest-pie-item h3{ font-family:'Fraunces',serif; font-size:15px; font-weight:600; margin:0 0 8px; color:var(--paper); text-align:center; }
   .chart-box.pie-tall{ height:320px; }
   .stat-line{
@@ -245,12 +247,27 @@
         <div class="invest-pie-grid">
           <div class="invest-pie-item"><h3>Tipos de rendimento</h3><div class="chart-box pie-tall"><canvas id="pieRendimento"></canvas></div></div>
           <div class="invest-pie-item"><h3>Tipos de investimento</h3><div class="chart-box pie-tall"><canvas id="pieTipo"></canvas></div></div>
-          <div class="invest-pie-item"><h3>Objetivos</h3><div class="chart-box pie-tall"><canvas id="pieObjetivo"></canvas></div></div>
           <div class="invest-pie-item"><h3>Qual CPF</h3><div class="chart-box pie-tall"><canvas id="pieCPF"></canvas></div></div>
-          <div class="invest-pie-item"><h3>Corretora</h3><div class="chart-box pie-tall"><canvas id="pieCorretora"></canvas></div></div>
         </div>
 
-        <h2 style="margin-top:28px;">FGC: onde está o dinheiro <span style="color:var(--ink-dim); font-weight:400;">(limite: R$ 250 mil por instituição)</span></h2>
+        <div class="invest-table-grid">
+          <div class="invest-pie-item">
+            <h3>Objetivos</h3>
+            <table class="compact">
+              <thead><tr><th>Objetivo</th><th style="text-align:right;">Valor</th><th style="text-align:right;">%</th></tr></thead>
+              <tbody id="tableObjetivo"></tbody>
+            </table>
+          </div>
+          <div class="invest-pie-item">
+            <h3>Corretora</h3>
+            <table class="compact">
+              <thead><tr><th>Corretora</th><th style="text-align:right;">Valor</th><th style="text-align:right;">%</th></tr></thead>
+              <tbody id="tableCorretora"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <h2 style="margin-top:28px;">FGC: onde está o dinheiro</h2>
         <span class="hint">apenas investimentos marcados com "Tem FGC" · agrupado por instituição emissora, não pela corretora</span>
         <div class="chart-box tall"><canvas id="fgcChart"></canvas></div>
       </div>
@@ -318,8 +335,8 @@
         <div style="overflow-x:auto;">
         <table class="compact">
           <thead><tr>
-            <th>Nome do investimento</th><th>Tipo</th><th style="text-align:right;">Valor inicial</th><th style="text-align:right;">Valor atual</th>
-            <th>Tipo de rendimento</th><th>Rendimento contratado</th><th style="text-align:right;">Rentabilidade líq. atual</th><th>Onde está</th><th>Liquidez</th><th>Data início</th>
+            <th>Nome do investimento</th><th>Tipo</th><th style="text-align:center;">Rentabilidade líq. atual</th><th style="text-align:right;">Valor inicial</th><th style="text-align:right;">Valor atual</th>
+            <th>Tipo de rendimento</th><th>Rendimento contratado</th><th>Onde está</th><th>Liquidez</th><th>Data início</th>
           </tr></thead>
           <tbody id="investTableBody"></tbody>
         </table>
@@ -473,6 +490,15 @@ function renderPieChart(canvasId, dataObj, opts){
   });
 }
 
+function renderGroupTable(tbodyId, dataObj){
+  const entries = Object.entries(dataObj).sort((a,b)=>b[1]-a[1]);
+  const total = entries.reduce((s,e)=>s+e[1],0);
+  document.getElementById(tbodyId).innerHTML = entries.map(([label,valor]) => {
+    const pct = total ? (valor/total*100).toFixed(1) : '0.0';
+    return `<tr><td>${label}</td><td class="val">${fmtBRL(valor)}</td><td class="val">${pct.replace('.',',')}%</td></tr>`;
+  }).join('');
+}
+
 function buildInvestRangeSelectors(){
   const from = document.getElementById('investFromSelect');
   const to = document.getElementById('investToSelect');
@@ -532,9 +558,9 @@ function renderInvestTab(){
 
   renderPieChart('pieRendimento', groupSum(ativos, i=>i.tipoRendimento));
   renderPieChart('pieTipo', groupSum(ativos, i=>i.tipo));
-  renderPieChart('pieObjetivo', groupSum(ativos, i=>i.objetivo));
+  renderGroupTable('tableObjetivo', groupSum(ativos, i=>i.objetivo));
   renderPieChart('pieCPF', groupSum(ativos, i=>i.cpf));
-  renderPieChart('pieCorretora', groupSum(ativos, i=>i.corretora));
+  renderGroupTable('tableCorretora', groupSum(ativos, i=>i.corretora));
 
   // total em investimentos ativos + liquidez diária
   const totalInvestido = ativos.reduce((s,i)=>s+i.valor, 0);
@@ -550,11 +576,11 @@ function renderInvestTab(){
     <tr>
       <td>${inv.nome || '(sem nome)'}</td>
       <td>${inv.tipo}</td>
+      <td style="text-align:center;">${inv.rentabilidadeAtual !== null ? inv.rentabilidadeAtual.toFixed(2).replace('.',',')+'%' : '—'}</td>
       <td class="val">${fmtBRL(inv.valorInicial)}</td>
       <td class="val">${fmtBRL(inv.valor)}</td>
       <td>${inv.tipoRendimento}</td>
       <td>${inv.rendContratado.toFixed(2).replace('.',',')}%</td>
-      <td class="val">${inv.rentabilidadeAtual !== null ? inv.rentabilidadeAtual.toFixed(2).replace('.',',')+'%' : '—'}</td>
       <td>${inv.ondeEsta}</td>
       <td>${inv.liquidez}</td>
       <td>${inv.dataInicioRaw || '—'}</td>
@@ -571,15 +597,13 @@ function renderInvestTab(){
       datasets: [
         { type:'bar', label:'Valor', data: ondeEntries.map(e=>e[1]),
           backgroundColor: ondeEntries.map(e => e[1] > 250000 ? '#c1613f' : '#d4a94e'), borderRadius:5,
-          datalabels: { display:true, color:'#e9e4d8', anchor:'end', align:'top', font:{size:11,weight:'600'}, formatter: v=>fmtBRLShort(v) } },
-        { type:'line', label:'Limite FGC (R$250 mil)', data: ondeEntries.map(()=>250000), borderColor:'#c1613f', borderDash:[6,4], pointRadius:0, borderWidth:2,
-          datalabels:{display:false} }
+          datalabels: { display:true, color:'#e9e4d8', anchor:'end', align:'top', font:{size:11,weight:'600'}, formatter: v=>fmtBRLShort(v) } }
       ]
     },
     options: {
       responsive:true, maintainAspectRatio:false,
       layout:{ padding:{ top:24 } },
-      plugins: { legend:{ position:'bottom', labels:{ color:'#e9e4d8', font:{size:12} } }, tooltip:{ callbacks:{ label: ctx => `${ctx.dataset.label}: ${fmtBRL(ctx.parsed.y)}` } } },
+      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => `${ctx.dataset.label}: ${fmtBRL(ctx.parsed.y)}` } } },
       scales: {
         x: { ticks:{ color:'#93a598', font:{size:11} }, grid:{ display:false } },
         y: { ticks:{ color:'#93a598', font:{size:11}, callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } }
@@ -622,12 +646,15 @@ function renderInvestTab(){
   investCharts.rendimentoChart = new Chart(document.getElementById('rendimentoChart'), {
     type:'line',
     data: { labels, datasets: [
-      { label:'Total', data: rendSeries.map(p=>p.total), borderColor:'#e9e4d8', backgroundColor:'#e9e4d8', pointRadius:2, borderWidth:2, tension:0.15, spanGaps:true },
-      { label:'Só investimentos', data: rendSeries.map(p=>p.soInvest), borderColor:'#7ca788', backgroundColor:'#7ca788', pointRadius:2, borderWidth:2, tension:0.15, spanGaps:true },
-      { label:'Meta', data: rangeMonths.map(()=>metaRend), borderColor:'#c1613f', borderDash:[6,4], pointRadius:0, borderWidth:2, tension:0 }
+      { label:'Total', data: rendSeries.map(p=>p.total), borderColor:'#e9e4d8', backgroundColor:'#e9e4d8', pointRadius:2, borderWidth:2, tension:0.15, spanGaps:true,
+        datalabels: { display:true, color:'#e9e4d8', anchor:'end', align:'top', font:{size:9,weight:'600'}, formatter: v=>v!==null?v.toFixed(1)+'%':'' } },
+      { label:'Só investimentos', data: rendSeries.map(p=>p.soInvest), borderColor:'#7ca788', backgroundColor:'#7ca788', pointRadius:2, borderWidth:2, tension:0.15, spanGaps:true,
+        datalabels: { display:true, color:'#7ca788', anchor:'end', align:'bottom', font:{size:9,weight:'600'}, formatter: v=>v!==null?v.toFixed(1)+'%':'' } },
+      { label:'Meta', data: rangeMonths.map(()=>metaRend), borderColor:'#c1613f', borderDash:[6,4], pointRadius:0, borderWidth:2, tension:0, datalabels:{display:false} }
     ]},
     options: {
       responsive:true, maintainAspectRatio:false,
+      layout:{ padding:{ top:20, bottom:20 } },
       plugins: { legend:{ position:'bottom', labels:{ color:'#e9e4d8', font:{size:12} } }, tooltip:{ callbacks:{ label: ctx => `${ctx.dataset.label}: ${(ctx.parsed.y||0).toFixed(2)}%` } } },
       scales: {
         x: { ticks:{ color:'#93a598', font:{size:10}, maxRotation:60, minRotation:60 }, grid:{ display:false } },
