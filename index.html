@@ -6,6 +6,7 @@
 <title>Extrato — Despesas</title>
 <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
@@ -90,6 +91,8 @@
   .cat-card-head .figs b{ color:var(--gold); font-weight:600; }
   .cat-grid{ display:grid; grid-template-columns: 2fr 1fr; gap:16px; margin-top:10px; }
   @media (max-width:760px){ .cat-grid{ grid-template-columns:1fr; } }
+  .cat-trend-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(360px,1fr)); gap:16px; margin-top:10px; }
+  .cat-trend-item h3{ font-family:'Fraunces',serif; font-size:14px; font-weight:600; margin:0 0 8px; color:var(--paper); }
 
   table{ width:100%; border-collapse:collapse; font-size:13.5px; }
   th{ text-align:left; font-family:'IBM Plex Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-dim); padding:8px 10px; border-bottom:1px solid var(--line); }
@@ -186,8 +189,8 @@
 
       <div class="card">
         <h2>Evolução por categoria</h2>
-        <span class="hint">linha sólida = gasto · linha tracejada da mesma cor = meta · clique na legenda pra isolar</span>
-        <div class="chart-box tall"><canvas id="trendCategoryChart"></canvas></div>
+        <span class="hint">um gráfico por categoria · linha tracejada = meta daquela categoria</span>
+        <div id="categoryTrendGrid" class="cat-trend-grid"></div>
       </div>
 
       <div class="card">
@@ -197,8 +200,12 @@
             <label for="catDetailSelect">Categoria</label>
             <select id="catDetailSelect"></select>
           </div>
+          <div class="field">
+            <label for="subDetailSelect">Subcategoria</label>
+            <select id="subDetailSelect"></select>
+          </div>
         </div>
-        <span class="hint">linha sólida = gasto · linha tracejada da mesma cor = meta</span>
+        <span class="hint">linha tracejada = meta da subcategoria selecionada</span>
         <div class="chart-box tall"><canvas id="trendSubcatChart"></canvas></div>
       </div>
 
@@ -215,6 +222,9 @@ const CSV_URL_CAT = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSU648a1XfI
 
 const COLORS = ['#d4a94e','#7ca788','#c1613f','#6b95b8','#a888c9','#c9a86b','#5fa8a0','#b06a9e','#8c9e5f','#c98f4e'];
 const MONTH_NAMES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
+
+if(window.ChartDataLabels) Chart.register(window.ChartDataLabels);
+Chart.defaults.set('plugins.datalabels', { display:false }); // opt-in per chart/dataset below
 
 let rows = [];
 let monthsSorted = [];
@@ -293,14 +303,21 @@ function buildCategorias(data){
 }
 
 function buildExpenses(data){
+  const header = data[0] || [];
+  const findCol = (needle) => header.findIndex(h => (h||'').includes(needle));
+  const iDespesa = findCol('Despesa');
+  const iValor = findCol('Valor');
+  const iData = findCol('Data');
+  const iCategoria = findCol('Categoria');
+  const iMes = findCol('Mês');
+
   const body = data.slice(1);
   rows = body.map(r => {
-    // columns follow original sheet order: Despesa | Valor | Data | Categoria(=subcategoria) | Dona | Quem pagou | Carimbo | Mês
-    const despesa = (r[0]||'').trim();
-    const valor = parseValor(r[1]);
-    const dataStr = (r[2]||'').trim();
-    const rawSub = (r[3]||'').trim();
-    const mes = (r[7]||'').trim();
+    const despesa = (r[iDespesa]||'').trim();
+    const valor = parseValor(r[iValor]);
+    const dataStr = (r[iData]||'').trim();
+    const rawSub = (r[iCategoria]||'').trim();
+    const mes = (r[iMes]||'').trim();
     const match = subcatIndex[norm(rawSub)];
     let categoria, subcategoria, subMeta;
     if(match){ categoria = match.categoria; subcategoria = match.nome; subMeta = match.meta; }
@@ -399,7 +416,11 @@ function renderMonth(selectedMonth){
     },
     options: {
       indexAxis: 'y', responsive:true, maintainAspectRatio:false,
-      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => fmtBRL(ctx.parsed.x) } } },
+      layout: { padding: { right: 60 } },
+      plugins: {
+        legend:{display:false}, tooltip:{ callbacks:{ label: ctx => fmtBRL(ctx.parsed.x) } },
+        datalabels: { display:true, color:'#e9e4d8', anchor:'end', align:'right', font:{size:12,weight:'600'}, formatter: v => fmtBRLShort(v) }
+      },
       scales: {
         x: { ticks:{ color:'#93a598', callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } },
         y: { ticks:{ color:'#e9e4d8', font:{size:12} }, grid:{ display:false } }
@@ -463,8 +484,12 @@ function renderCategoryCards(monthRows){
       },
       options: {
         responsive:true, maintainAspectRatio:false,
-        plugins: { legend:{ position:'bottom', labels:{ color:'#e9e4d8', boxWidth:10, font:{size:10} } },
-                   tooltip:{ callbacks:{ label: ctx => `${ctx.dataset.label}: ${fmtBRL(ctx.parsed.y)}` } } },
+        layout: { padding: { top: 22 } },
+        plugins: {
+          legend:{ position:'bottom', labels:{ color:'#e9e4d8', boxWidth:10, font:{size:10} } },
+          tooltip:{ callbacks:{ label: ctx => `${ctx.dataset.label}: ${fmtBRL(ctx.parsed.y)}` } },
+          datalabels: { display:true, color:'#e9e4d8', anchor:'end', align:'top', font:{size:9,weight:'600'}, formatter: v => fmtBRLShort(v) }
+        },
         scales: {
           x: { ticks:{ color:'#93a598', font:{size:9}, maxRotation:55, minRotation:35 }, grid:{ display:false } },
           y: { ticks:{ color:'#93a598', font:{size:9}, callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } }
@@ -472,13 +497,16 @@ function renderCategoryCards(monthRows){
       }
     });
 
-    const overCat = catTotal > catInfo.metaTotal;
     const mini = new Chart(document.getElementById(miniId), {
       type: 'bar',
-      data: { labels:['Gasto','Meta'], datasets:[{ data:[catTotal, catInfo.metaTotal], backgroundColor:[overCat?'#c1613f':color, '#3a4a40'], borderRadius:4 }] },
+      data: { labels:['Gasto','Meta'], datasets:[{ data:[catTotal, catInfo.metaTotal], backgroundColor:[color, '#3a4a40'], borderRadius:4 }] },
       options: {
         indexAxis:'y', responsive:true, maintainAspectRatio:false,
-        plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => fmtBRL(ctx.parsed.x) } } },
+        layout: { padding: { right: 55 } },
+        plugins: {
+          legend:{display:false}, tooltip:{ callbacks:{ label: ctx => fmtBRL(ctx.parsed.x) } },
+          datalabels: { display:true, color:'#e9e4d8', anchor:'end', align:'right', font:{size:10,weight:'600'}, formatter: v => fmtBRLShort(v) }
+        },
         scales: {
           x: { ticks:{ color:'#93a598', font:{size:9}, callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } },
           y: { ticks:{ color:'#e9e4d8', font:{size:10} }, grid:{ display:false } }
@@ -533,7 +561,17 @@ function buildCategoryDetailSelector(){
   const sel = document.getElementById('catDetailSelect');
   sel.innerHTML = '';
   Object.keys(catMap).forEach(cat => { const o=document.createElement('option'); o.value=cat; o.textContent=cat; sel.appendChild(o); });
-  sel.addEventListener('change', renderTrend);
+  sel.addEventListener('change', () => { buildSubDetailSelector(sel.value); renderTrend(); });
+  buildSubDetailSelector(sel.value);
+}
+
+function buildSubDetailSelector(categoria){
+  const sel = document.getElementById('subDetailSelect');
+  sel.innerHTML = '';
+  const info = catMap[categoria];
+  if(!info) return;
+  info.subcategorias.forEach(s => { const o=document.createElement('option'); o.value=s.nome; o.textContent=s.nome; sel.appendChild(o); });
+  sel.onchange = renderTrend;
 }
 
 function getRangeMonths(){
@@ -545,7 +583,8 @@ function getRangeMonths(){
   return monthsSorted.slice(fi, ti+1);
 }
 
-let trendTotalChart, trendCategoryChart, trendSubcatChart;
+let trendTotalChart, trendSubcatChart;
+const categoryTrendCharts = {}; // categoria -> Chart instance
 
 function renderTrend(){
   const range = getRangeMonths();
@@ -558,12 +597,15 @@ function renderTrend(){
     data: {
       labels: range.map(monthLabel),
       datasets: [
-        { type:'bar', label:'Gasto total', data: totals, backgroundColor:'#d4a94e', borderRadius:4 },
-        { type:'line', label:'Meta mensal', data: range.map(()=>globalMetaTotal), borderColor:'#c1613f', borderDash:[6,4], pointRadius:0, borderWidth:2, tension:0 }
+        { type:'bar', label:'Gasto total', data: totals, backgroundColor:'#d4a94e', borderRadius:4,
+          datalabels: { display:true, color:'#e9e4d8', anchor:'end', align:'top', font:{size:10,weight:'600'}, formatter: v => fmtBRLShort(v) } },
+        { type:'line', label:'Meta mensal', data: range.map(()=>globalMetaTotal), borderColor:'#c1613f', borderDash:[6,4], pointRadius:0, borderWidth:2, tension:0,
+          datalabels: { display:false } }
       ]
     },
     options: {
       responsive:true, maintainAspectRatio:false,
+      layout: { padding: { top: 20 } },
       plugins: { legend:{ position:'bottom', labels:{ color:'#e9e4d8' } }, tooltip:{ callbacks:{ label: ctx => `${ctx.dataset.label}: ${fmtBRL(ctx.parsed.y)}` } } },
       scales: {
         x: { ticks:{ color:'#93a598', font:{size:10}, maxRotation:60, minRotation:60 }, grid:{ display:false } },
@@ -572,52 +614,73 @@ function renderTrend(){
     }
   });
 
-  // Chart B: por categoria (solid + dashed meta per categoria)
-  const catDatasets = [];
-  Object.keys(catMap).forEach((cat,i) => {
+  // Chart B: um gráfico por categoria (gasto + linha fixa de meta)
+  const grid = document.getElementById('categoryTrendGrid');
+  grid.innerHTML = '';
+  Object.keys(catMap).forEach(cat => {
     const color = categoriaColor[cat];
     const data = range.map(m => rows.filter(r=>r.mes===m && r.categoria===cat).reduce((s,r)=>s+r.valor,0));
-    catDatasets.push({ type:'line', label: cat, data, borderColor: color, backgroundColor: color, pointRadius:2, borderWidth:2, tension:0.15 });
-    catDatasets.push({ type:'line', label: cat+' (meta)', data: range.map(()=>catMap[cat].metaTotal), borderColor: color, borderDash:[5,4], pointRadius:0, borderWidth:1.5, tension:0 });
-  });
-  if(trendCategoryChart) trendCategoryChart.destroy();
-  trendCategoryChart = new Chart(document.getElementById('trendCategoryChart'), {
-    data: { labels: range.map(monthLabel), datasets: catDatasets },
-    options: {
-      responsive:true, maintainAspectRatio:false,
-      plugins: { legend:{ position:'bottom', labels:{ color:'#e9e4d8', boxWidth:10, font:{size:10} } },
-                 tooltip:{ callbacks:{ label: ctx => `${ctx.dataset.label}: ${fmtBRL(ctx.parsed.y)}` } } },
-      scales: {
-        x: { ticks:{ color:'#93a598', font:{size:10}, maxRotation:60, minRotation:60 }, grid:{ display:false } },
-        y: { ticks:{ color:'#93a598', callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } }
+    const item = document.createElement('div');
+    item.className = 'cat-trend-item';
+    const canvasId = `trendcat_${cat.replace(/[^a-zA-Z0-9]/g,'')}`;
+    item.innerHTML = `<h3>${cat}</h3><div class="chart-box small"><canvas id="${canvasId}"></canvas></div>`;
+    grid.appendChild(item);
+
+    if(categoryTrendCharts[cat]) categoryTrendCharts[cat].destroy();
+    categoryTrendCharts[cat] = new Chart(document.getElementById(canvasId), {
+      data: {
+        labels: range.map(monthLabel),
+        datasets: [
+          { type:'line', label:'Gasto', data, borderColor: color, backgroundColor: color, pointRadius:3, borderWidth:2, tension:0.15,
+            datalabels: { display:true, color:'#e9e4d8', anchor:'end', align:'top', font:{size:9,weight:'600'}, formatter: v => fmtBRLShort(v) } },
+          { type:'line', label:'Meta', data: range.map(()=>catMap[cat].metaTotal), borderColor: color, borderDash:[5,4], pointRadius:0, borderWidth:1.5, tension:0,
+            datalabels: { display:false } }
+        ]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        layout: { padding: { top: 18 } },
+        plugins: { legend:{ position:'bottom', labels:{ color:'#e9e4d8', boxWidth:10, font:{size:10} } },
+                   tooltip:{ callbacks:{ label: ctx => `${ctx.dataset.label}: ${fmtBRL(ctx.parsed.y)}` } } },
+        scales: {
+          x: { ticks:{ color:'#93a598', font:{size:9}, maxRotation:60, minRotation:60 }, grid:{ display:false } },
+          y: { ticks:{ color:'#93a598', font:{size:9}, callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } }
+        }
       }
-    }
+    });
   });
 
-  // Chart C: por subcategoria (of selected categoria)
+  // Chart C: uma subcategoria específica (gasto + linha fixa de meta)
   const selectedCat = document.getElementById('catDetailSelect').value || Object.keys(catMap)[0];
-  const subDatasets = [];
-  if(catMap[selectedCat]){
-    catMap[selectedCat].subcategorias.forEach((sub, i) => {
-      const color = COLORS[i % COLORS.length];
-      const data = range.map(m => rows.filter(r=>r.mes===m && r.categoria===selectedCat && r.subcategoria===sub.nome).reduce((s,r)=>s+r.valor,0));
-      subDatasets.push({ type:'line', label: sub.nome, data, borderColor: color, backgroundColor: color, pointRadius:2, borderWidth:2, tension:0.15 });
-      subDatasets.push({ type:'line', label: sub.nome+' (meta)', data: range.map(()=>sub.meta), borderColor: color, borderDash:[5,4], pointRadius:0, borderWidth:1.5, tension:0 });
+  const selectedSub = document.getElementById('subDetailSelect').value;
+  const subInfo = catMap[selectedCat] ? catMap[selectedCat].subcategorias.find(s => s.nome === selectedSub) : null;
+
+  if(trendSubcatChart) trendSubcatChart.destroy();
+  if(subInfo){
+    const color = categoriaColor[selectedCat] || COLORS[0];
+    const data = range.map(m => rows.filter(r=>r.mes===m && r.categoria===selectedCat && r.subcategoria===subInfo.nome).reduce((s,r)=>s+r.valor,0));
+    trendSubcatChart = new Chart(document.getElementById('trendSubcatChart'), {
+      data: {
+        labels: range.map(monthLabel),
+        datasets: [
+          { type:'line', label:'Gasto', data, borderColor: color, backgroundColor: color, pointRadius:3, borderWidth:2, tension:0.15,
+            datalabels: { display:true, color:'#e9e4d8', anchor:'end', align:'top', font:{size:10,weight:'600'}, formatter: v => fmtBRLShort(v) } },
+          { type:'line', label:'Meta', data: range.map(()=>subInfo.meta), borderColor: color, borderDash:[5,4], pointRadius:0, borderWidth:1.5, tension:0,
+            datalabels: { display:false } }
+        ]
+      },
+      options: {
+        responsive:true, maintainAspectRatio:false,
+        layout: { padding: { top: 20 } },
+        plugins: { legend:{ position:'bottom', labels:{ color:'#e9e4d8' } },
+                   tooltip:{ callbacks:{ label: ctx => `${ctx.dataset.label}: ${fmtBRL(ctx.parsed.y)}` } } },
+        scales: {
+          x: { ticks:{ color:'#93a598', font:{size:10}, maxRotation:60, minRotation:60 }, grid:{ display:false } },
+          y: { ticks:{ color:'#93a598', callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } }
+        }
+      }
     });
   }
-  if(trendSubcatChart) trendSubcatChart.destroy();
-  trendSubcatChart = new Chart(document.getElementById('trendSubcatChart'), {
-    data: { labels: range.map(monthLabel), datasets: subDatasets },
-    options: {
-      responsive:true, maintainAspectRatio:false,
-      plugins: { legend:{ position:'bottom', labels:{ color:'#e9e4d8', boxWidth:10, font:{size:10} } },
-                 tooltip:{ callbacks:{ label: ctx => `${ctx.dataset.label}: ${fmtBRL(ctx.parsed.y)}` } } },
-      scales: {
-        x: { ticks:{ color:'#93a598', font:{size:10}, maxRotation:60, minRotation:60 }, grid:{ display:false } },
-        y: { ticks:{ color:'#93a598', callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } }
-      }
-    }
-  });
 }
 
 loadData();
