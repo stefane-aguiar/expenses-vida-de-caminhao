@@ -94,6 +94,8 @@
   .cat-grid{ display:grid; grid-template-columns: 1fr; gap:14px; margin-top:10px; }
   .cat-trend-grid{ display:grid; grid-template-columns: 1fr; gap:22px; margin-top:10px; }
   .cat-trend-item h3{ font-family:'Fraunces',serif; font-size:16px; font-weight:600; margin:0 0 8px; color:var(--paper); }
+  .invest-pie-grid{ display:grid; grid-template-columns: repeat(auto-fit, minmax(220px,1fr)); gap:18px; margin-top:10px; }
+  .invest-pie-item h3{ font-family:'Fraunces',serif; font-size:14px; font-weight:600; margin:0 0 8px; color:var(--paper); text-align:center; }
 
   table{ width:100%; border-collapse:collapse; font-size:14.5px; }
   th{ text-align:left; font-family:'IBM Plex Mono',monospace; font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-dim); padding:9px 10px; border-bottom:1px solid var(--line); }
@@ -120,6 +122,7 @@
     <div class="tabs">
       <button class="tab-btn active" data-tab="mes">Gastos do mês</button>
       <button class="tab-btn" data-tab="tempo">Evolução no tempo</button>
+      <button class="tab-btn" data-tab="invest">Investimentos</button>
     </div>
 
     <!-- ===================== TAB: MÊS ===================== -->
@@ -212,6 +215,71 @@
 
     </div>
 
+    <!-- ===================== TAB: INVESTIMENTOS ===================== -->
+    <div class="tab-panel" id="tab-invest">
+
+      <div class="card">
+        <h2>Carteira: foto do momento atual</h2>
+        <span class="hint">considera apenas investimentos com status "Ativo", ponderado pelo valor atual</span>
+        <div class="invest-pie-grid">
+          <div class="invest-pie-item"><h3>Tipos de rendimento</h3><div class="chart-box short"><canvas id="pieRendimento"></canvas></div></div>
+          <div class="invest-pie-item"><h3>Tipos de investimento</h3><div class="chart-box short"><canvas id="pieTipo"></canvas></div></div>
+          <div class="invest-pie-item"><h3>Objetivos</h3><div class="chart-box short"><canvas id="pieObjetivo"></canvas></div></div>
+          <div class="invest-pie-item"><h3>Qual CPF</h3><div class="chart-box short"><canvas id="pieCPF"></canvas></div></div>
+          <div class="invest-pie-item"><h3>Corretora</h3><div class="chart-box short"><canvas id="pieCorretora"></canvas></div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Onde está o dinheiro <span style="color:var(--ink-dim); font-weight:400;">(limite FGC: R$ 250 mil por instituição)</span></h2>
+        <span class="hint">apenas investimentos marcados com "Tem FGC" · agrupado por instituição emissora, não pela corretora</span>
+        <div class="chart-box tall"><canvas id="fgcChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h2>Indicadores da economia</h2>
+        <span class="hint">Selic (meta) e IPCA (acumulado 12 meses) mês a mês</span>
+        <div class="chart-box tall"><canvas id="indicadoresChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h2>Total de dinheiro</h2>
+        <span class="hint">barras sólidas = valores que você registrou · barras claras = projeção a partir de hoje</span>
+        <div class="chart-box tall"><canvas id="totalDinheiroChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h2>Rendimento (pós IR)</h2>
+        <div class="row-controls" style="margin-bottom:6px;">
+          <div class="field">
+            <label for="metaRendInput">Meta anual (%)</label>
+            <select id="metaRendInput">
+              <option value="6">6%</option><option value="7">7%</option><option value="8">8%</option><option value="9">9%</option>
+              <option value="10" selected>10%</option><option value="11">11%</option><option value="12">12%</option><option value="13">13%</option><option value="14">14%</option><option value="15">15%</option>
+            </select>
+          </div>
+        </div>
+        <span class="hint">"Total" = variação real do total de dinheiro · "Só investimentos" = média ponderada do rendimento contratado líquido de IR</span>
+        <div class="chart-box tall"><canvas id="rendimentoChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h2>Salário aposentadoria</h2>
+        <div class="row-controls" style="margin-bottom:6px;">
+          <div class="field">
+            <label for="taxaAposInput">Taxa de retirada anual (%)</label>
+            <select id="taxaAposInput">
+              <option value="3">3%</option><option value="4">4%</option><option value="5">5%</option><option value="6">6%</option>
+              <option value="7">7%</option><option value="8" selected>8%</option><option value="9">9%</option><option value="10">10%</option>
+            </select>
+          </div>
+        </div>
+        <span class="hint">(taxa × total de dinheiro do mês) ÷ 12</span>
+        <div class="chart-box tall"><canvas id="aposentadoriaChart"></canvas></div>
+      </div>
+
+    </div>
+
   </div>
 
   <footer>Dados lidos diretamente das planilhas publicadas — atualize e recarregue a página.</footer>
@@ -220,6 +288,10 @@
 <script>
 const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSU648a1XfIY3A7rQ60Xc5V4GtZsA-gmvViZPza9s4wlf_A7IAixS_j0ZumVo6y1MQdVHiBHyud9e_8/pub?gid=1141772153&single=true&output=csv";
 const CSV_URL_CAT = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSU648a1XfIY3A7rQ60Xc5V4GtZsA-gmvViZPza9s4wlf_A7IAixS_j0ZumVo6y1MQdVHiBHyud9e_8/pub?gid=894171086&single=true&output=csv";
+const CSV_URL_INVEST = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSU648a1XfIY3A7rQ60Xc5V4GtZsA-gmvViZPza9s4wlf_A7IAixS_j0ZumVo6y1MQdVHiBHyud9e_8/pub?gid=353950631&single=true&output=csv";
+const CSV_URL_SELIC = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSU648a1XfIY3A7rQ60Xc5V4GtZsA-gmvViZPza9s4wlf_A7IAixS_j0ZumVo6y1MQdVHiBHyud9e_8/pub?gid=852432365&single=true&output=csv";
+const CSV_URL_IPCA = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSU648a1XfIY3A7rQ60Xc5V4GtZsA-gmvViZPza9s4wlf_A7IAixS_j0ZumVo6y1MQdVHiBHyud9e_8/pub?gid=1802439601&single=true&output=csv";
+const CSV_URL_TOTALDINHEIRO = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSU648a1XfIY3A7rQ60Xc5V4GtZsA-gmvViZPza9s4wlf_A7IAixS_j0ZumVo6y1MQdVHiBHyud9e_8/pub?gid=824786343&single=true&output=csv";
 
 const COLORS = ['#d4a94e','#7ca788','#c1613f','#6b95b8','#a888c9','#c9a86b','#5fa8a0','#b06a9e','#8c9e5f','#c98f4e'];
 const MONTH_NAMES = ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'];
@@ -233,6 +305,43 @@ let catMap = {};          // categoria -> { subcategorias:[{nome,meta}], metaTot
 let subcatIndex = {};     // normalized subcat -> {categoria, nome, meta}
 let categoriaColor = {};  // categoria -> color
 let globalMetaTotal = 0;
+
+let investimentos = [];      // {cpf, objetivo, status, nome, valor, tipoRendimento, rendContratado, ir, tipo, temFGC, corretora, ondeEsta, dataInicio, dataFim}
+let selicHistorico = [];     // [{start:Date, end:Date|null, taxa:number}] sorted by start asc
+let ipcaHistorico = {};      // 'mm/yyyy' -> taxa (number, % a.a.)
+let totalDinheiroHist = {};  // 'mm/yyyy' -> valor (real, registrado manualmente)
+let totalDinheiroMonths = []; // meses (mm/yyyy) ordenados presentes na aba Total de dinheiro
+let investMonthsSorted = []; // união de meses relevantes pra abas de investimento (histórico + projeção 24 meses à frente)
+
+function parsePercent(raw){
+  if(!raw) return 0;
+  let s = String(raw).replace('%','').trim().replace(',', '.');
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+function parseDateBR(raw){
+  if(!raw) return null;
+  const parts = String(raw).trim().split('/');
+  if(parts.length !== 3) return null;
+  const [d,m,y] = parts.map(Number);
+  if(!d || !m || !y) return null;
+  return new Date(y, m-1, d);
+}
+const PT_MONTHS = {janeiro:1,fevereiro:2,'março':3,marco:3,abril:4,maio:5,junho:6,julho:7,agosto:8,setembro:9,outubro:10,novembro:11,dezembro:12};
+function parsePtMonth(raw){
+  // "janeiro/2026" -> "01/2026"
+  if(!raw) return null;
+  const [nome, ano] = String(raw).trim().toLowerCase().split('/');
+  const mm = PT_MONTHS[nome];
+  if(!mm || !ano) return null;
+  return `${String(mm).padStart(2,'0')}/${ano}`;
+}
+function monthKeyToDate(mesKey){ const [mm,yyyy] = mesKey.split('/').map(Number); return new Date(yyyy, mm-1, 15); }
+function addMonthsToKey(mesKey, n){
+  const [mm,yyyy] = mesKey.split('/').map(Number);
+  const d = new Date(yyyy, mm-1+n, 1);
+  return `${String(d.getMonth()+1).padStart(2,'0')}/${d.getFullYear()}`;
+}
 
 function parseValor(raw){
   if(!raw) return 0;
@@ -255,11 +364,227 @@ function fetchCSV(url){
   });
 }
 
+function buildInvestMonthsSorted(){
+  if(totalDinheiroMonths.length === 0){ investMonthsSorted = []; return; }
+  const start = totalDinheiroMonths[0];
+  const now = new Date();
+  const currentKey = `${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
+  const horizonKey = addMonthsToKey(currentKey, 12);
+  const lastHist = totalDinheiroMonths[totalDinheiroMonths.length-1];
+  const end = monthSortKey(horizonKey) > monthSortKey(lastHist) ? horizonKey : lastHist;
+  const list = [];
+  let cur = start;
+  let guard = 0;
+  while(monthSortKey(cur) <= monthSortKey(end) && guard < 240){
+    list.push(cur);
+    cur = addMonthsToKey(cur, 1);
+    guard++;
+  }
+  investMonthsSorted = list;
+}
+
+function computeInvestSeries(){
+  const totalSeries = [];
+  const waAnnualSeries = [];
+  let lastValue = null;
+  investMonthsSorted.forEach(mes => {
+    const ativos = investimentos.filter(inv => investAtivoNoMes(inv, mes) && inv.valor > 0);
+    let waAnnual = null;
+    if(ativos.length){
+      const sumValor = ativos.reduce((s,i)=>s+i.valor,0);
+      const sumWeighted = ativos.reduce((s,i)=>s+i.valor*taxaLiquidaAnual(i,mes),0);
+      waAnnual = sumValor > 0 ? sumWeighted/sumValor : null;
+    }
+    waAnnualSeries.push(waAnnual);
+
+    if(totalDinheiroHist[mes] !== undefined){
+      lastValue = totalDinheiroHist[mes];
+      totalSeries.push({ mes, valor: lastValue, isReal:true });
+    } else {
+      const monthlyGrowth = waAnnual !== null ? Math.pow(1+waAnnual/100, 1/12)-1 : 0;
+      lastValue = lastValue !== null ? lastValue*(1+monthlyGrowth) : 0;
+      totalSeries.push({ mes, valor: lastValue, isReal:false });
+    }
+  });
+  return { totalSeries, waAnnualSeries };
+}
+
+function computeTotalAnnualizedSeries(totalSeries, waAnnualSeries){
+  return totalSeries.map((pt,idx) => {
+    if(idx === 0) return waAnnualSeries[0];
+    const prev = totalSeries[idx-1].valor;
+    if(!prev || prev <= 0) return waAnnualSeries[idx];
+    const m = pt.valor/prev - 1;
+    return (Math.pow(1+m,12)-1)*100;
+  });
+}
+
+const investCharts = {};
+function renderPieChart(canvasId, dataObj, opts){
+  if(investCharts[canvasId]) investCharts[canvasId].destroy();
+  const entries = Object.entries(dataObj).sort((a,b)=>b[1]-a[1]);
+  investCharts[canvasId] = new Chart(document.getElementById(canvasId), {
+    type: 'pie',
+    data: { labels: entries.map(e=>e[0]), datasets: [{ data: entries.map(e=>e[1]), backgroundColor: COLORS, borderColor:'#16201b', borderWidth:2 }] },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: {
+        legend: { position:'bottom', labels:{ color:'#e9e4d8', font:{size:10}, boxWidth:10, padding:8 } },
+        tooltip: { callbacks: { label: ctx => {
+          const total = entries.reduce((s,e)=>s+e[1],0);
+          const pct = total ? (ctx.parsed/total*100).toFixed(1) : 0;
+          return `${ctx.label}: ${fmtBRL(ctx.parsed)} (${pct}%)`;
+        } } }
+      }
+    }
+  });
+}
+
+function renderInvestTab(){
+  if(investimentos.length === 0) return;
+  const ativos = investimentos.filter(i => isStatusAtivo(i));
+
+  const groupSum = (list, keyFn) => {
+    const out = {};
+    list.forEach(i => { const k = keyFn(i) || 'Não informado'; out[k] = (out[k]||0) + i.valor; });
+    return out;
+  };
+
+  renderPieChart('pieRendimento', groupSum(ativos, i=>i.tipoRendimento));
+  renderPieChart('pieTipo', groupSum(ativos, i=>i.tipo));
+  renderPieChart('pieObjetivo', groupSum(ativos, i=>i.objetivo));
+  renderPieChart('pieCPF', groupSum(ativos, i=>i.cpf));
+  renderPieChart('pieCorretora', groupSum(ativos, i=>i.corretora));
+
+  // FGC por instituição (onde está) — só investimentos marcados com "Tem FGC"
+  const fgcAtivos = ativos.filter(temFGCSim);
+  const byOnde = groupSum(fgcAtivos, i=>i.ondeEsta);
+  const ondeEntries = Object.entries(byOnde).sort((a,b)=>b[1]-a[1]);
+  if(investCharts.fgcChart) investCharts.fgcChart.destroy();
+  investCharts.fgcChart = new Chart(document.getElementById('fgcChart'), {
+    data: {
+      labels: ondeEntries.map(e=>e[0]),
+      datasets: [
+        { type:'bar', label:'Valor', data: ondeEntries.map(e=>e[1]),
+          backgroundColor: ondeEntries.map(e => e[1] > 250000 ? '#c1613f' : '#d4a94e'), borderRadius:5,
+          datalabels: { display:true, color:'#e9e4d8', anchor:'end', align:'top', font:{size:11,weight:'600'}, formatter: v=>fmtBRLShort(v) } },
+        { type:'line', label:'Limite FGC (R$250 mil)', data: ondeEntries.map(()=>250000), borderColor:'#c1613f', borderDash:[6,4], pointRadius:0, borderWidth:2,
+          datalabels:{display:false} }
+      ]
+    },
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      layout:{ padding:{ top:24 } },
+      plugins: { legend:{ position:'bottom', labels:{ color:'#e9e4d8', font:{size:12} } }, tooltip:{ callbacks:{ label: ctx => `${ctx.dataset.label}: ${fmtBRL(ctx.parsed.y)}` } } },
+      scales: {
+        x: { ticks:{ color:'#93a598', font:{size:11} }, grid:{ display:false } },
+        y: { ticks:{ color:'#93a598', font:{size:11}, callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } }
+      }
+    }
+  });
+
+  buildInvestMonthsSorted();
+  if(investMonthsSorted.length === 0) return;
+  const labels = investMonthsSorted.map(monthLabel);
+
+  // Indicadores da economia
+  const selicSeries = investMonthsSorted.map(m => getSelicAt(monthKeyToDate(m)));
+  const ipcaSeries = investMonthsSorted.map(m => getIpcaAt(m));
+  if(investCharts.indicadoresChart) investCharts.indicadoresChart.destroy();
+  investCharts.indicadoresChart = new Chart(document.getElementById('indicadoresChart'), {
+    type:'line',
+    data: { labels, datasets: [
+      { label:'Selic (meta)', data: selicSeries, borderColor:'#a888c9', backgroundColor:'#a888c9', pointRadius:2, borderWidth:2, tension:0.1 },
+      { label:'IPCA (12 meses)', data: ipcaSeries, borderColor:'#c98f4e', backgroundColor:'#c98f4e', pointRadius:2, borderWidth:2, tension:0.1 }
+    ]},
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: { legend:{ position:'bottom', labels:{ color:'#e9e4d8', font:{size:12} } }, tooltip:{ callbacks:{ label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toFixed(2)}%` } } },
+      scales: {
+        x: { ticks:{ color:'#93a598', font:{size:10}, maxRotation:60, minRotation:60 }, grid:{ display:false } },
+        y: { ticks:{ color:'#93a598', font:{size:11}, callback:v=>v+'%' }, grid:{ color:'#2a3830' } }
+      }
+    }
+  });
+
+  // Total de dinheiro + rendimento + aposentadoria dependem da série calculada
+  const { totalSeries, waAnnualSeries } = computeInvestSeries();
+  const totalAnualizadoSeries = computeTotalAnnualizedSeries(totalSeries, waAnnualSeries);
+
+  if(investCharts.totalDinheiroChart) investCharts.totalDinheiroChart.destroy();
+  investCharts.totalDinheiroChart = new Chart(document.getElementById('totalDinheiroChart'), {
+    type:'bar',
+    data: { labels, datasets: [{
+      label:'Total de dinheiro', data: totalSeries.map(p=>p.valor),
+      backgroundColor: totalSeries.map(p => p.isReal ? '#d4a94e' : 'rgba(212,169,78,0.35)'), borderRadius:4,
+      datalabels: { display:true, color:'#e9e4d8', anchor:'end', align:'top', font:{size:10,weight:'600'}, formatter: v=>fmtBRLShort(v) }
+    }]},
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      layout:{ padding:{ top:22 } },
+      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => {
+        const isReal = totalSeries[ctx.dataIndex].isReal;
+        return `${fmtBRL(ctx.parsed.y)} ${isReal ? '(registrado)' : '(projetado)'}`;
+      } } } },
+      scales: {
+        x: { ticks:{ color:'#93a598', font:{size:10}, maxRotation:60, minRotation:60 }, grid:{ display:false } },
+        y: { ticks:{ color:'#93a598', font:{size:11}, callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } }
+      }
+    }
+  });
+
+  const metaRend = parseFloat(document.getElementById('metaRendInput').value) || 10;
+  if(investCharts.rendimentoChart) investCharts.rendimentoChart.destroy();
+  investCharts.rendimentoChart = new Chart(document.getElementById('rendimentoChart'), {
+    type:'line',
+    data: { labels, datasets: [
+      { label:'Total', data: totalAnualizadoSeries, borderColor:'#e9e4d8', backgroundColor:'#e9e4d8', pointRadius:2, borderWidth:2, tension:0.15 },
+      { label:'Só investimentos', data: waAnnualSeries, borderColor:'#7ca788', backgroundColor:'#7ca788', pointRadius:2, borderWidth:2, tension:0.15 },
+      { label:'Meta', data: investMonthsSorted.map(()=>metaRend), borderColor:'#c1613f', borderDash:[6,4], pointRadius:0, borderWidth:2, tension:0 }
+    ]},
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      plugins: { legend:{ position:'bottom', labels:{ color:'#e9e4d8', font:{size:12} } }, tooltip:{ callbacks:{ label: ctx => `${ctx.dataset.label}: ${(ctx.parsed.y||0).toFixed(2)}%` } } },
+      scales: {
+        x: { ticks:{ color:'#93a598', font:{size:10}, maxRotation:60, minRotation:60 }, grid:{ display:false } },
+        y: { ticks:{ color:'#93a598', font:{size:11}, callback:v=>v+'%' }, grid:{ color:'#2a3830' } }
+      }
+    }
+  });
+
+  const taxaApos = parseFloat(document.getElementById('taxaAposInput').value) || 8;
+  const aposSeries = totalSeries.map(p => (taxaApos/100 * p.valor) / 12);
+  if(investCharts.aposentadoriaChart) investCharts.aposentadoriaChart.destroy();
+  investCharts.aposentadoriaChart = new Chart(document.getElementById('aposentadoriaChart'), {
+    type:'line',
+    data: { labels, datasets: [{
+      label:'Salário aposentadoria', data: aposSeries, borderColor:'#6b95b8', backgroundColor:'#6b95b8', pointRadius:2, borderWidth:2, tension:0.15,
+      datalabels: { display:true, color:'#e9e4d8', anchor:'end', align:'top', font:{size:10,weight:'600'}, formatter: v=>fmtBRLShort(v) }
+    }]},
+    options: {
+      responsive:true, maintainAspectRatio:false,
+      layout:{ padding:{ top:22 } },
+      plugins: { legend:{display:false}, tooltip:{ callbacks:{ label: ctx => fmtBRL(ctx.parsed.y) } } },
+      scales: {
+        x: { ticks:{ color:'#93a598', font:{size:10}, maxRotation:60, minRotation:60 }, grid:{ display:false } },
+        y: { ticks:{ color:'#93a598', font:{size:11}, callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } }
+      }
+    }
+  });
+}
+
 async function loadData(){
   try{
-    const [despesasRaw, catRaw] = await Promise.all([fetchCSV(CSV_URL), fetchCSV(CSV_URL_CAT)]);
+    const [despesasRaw, catRaw, investRaw, selicRaw, ipcaRaw, totalRaw] = await Promise.all([
+      fetchCSV(CSV_URL), fetchCSV(CSV_URL_CAT), fetchCSV(CSV_URL_INVEST),
+      fetchCSV(CSV_URL_SELIC), fetchCSV(CSV_URL_IPCA), fetchCSV(CSV_URL_TOTALDINHEIRO)
+    ]);
     buildCategorias(catRaw);
     buildExpenses(despesasRaw);
+    buildInvestimentos(investRaw);
+    buildSelic(selicRaw);
+    buildIPCA(ipcaRaw);
+    buildTotalDinheiro(totalRaw);
 
     if(monthsSorted.length === 0) throw new Error('Nenhum mês encontrado nos dados.');
 
@@ -274,6 +599,10 @@ async function loadData(){
 
     renderMonth(monthsSorted[monthsSorted.length - 1]);
     renderTrend();
+    renderInvestTab();
+
+    document.getElementById('metaRendInput').addEventListener('change', renderInvestTab);
+    document.getElementById('taxaAposInput').addEventListener('change', renderInvestTab);
   }catch(e){
     showError(e.message || String(e));
   }
@@ -282,7 +611,7 @@ async function loadData(){
 function showError(msg){
   const el = document.getElementById('status');
   el.className = 'err';
-  el.innerHTML = `Não consegui carregar os dados.<br><span style="opacity:.75">${msg}</span><br><br>Verifique se os dois links de publicação (Arquivo → Compartilhar → Publicar na Web) ainda estão ativos.`;
+  el.innerHTML = `Não consegui carregar os dados.<br><span style="opacity:.75">${msg}</span><br><br>Verifique se todos os links de publicação (Arquivo → Compartilhar → Publicar na Web) ainda estão ativos.`;
 }
 
 function buildCategorias(data){
@@ -338,6 +667,146 @@ function buildExpenses(data){
   monthsSorted = Array.from(monthSet).sort((a,b) => monthSortKey(a)-monthSortKey(b));
 }
 
+/* ---------------- investimentos: parsing das 4 abas ---------------- */
+function buildInvestimentos(data){
+  const header = data[0] || [];
+  const findCol = (needle) => header.findIndex(h => (h||'').includes(needle));
+  const iCPF = findCol('CPF');
+  const iObjetivo = findCol('Objetivo');
+  const iStatus = findCol('Status');
+  const iNome = findCol('Nome');
+  const iValor = findCol('Valor');
+  const iTipoRend = findCol('Tipo de rendimento');
+  const iRendCont = findCol('Rendimento contratado');
+  const iTipo = header.findIndex(h => (h||'').trim() === 'Tipo');
+  const iFGC = findCol('FGC');
+  const iCorretora = findCol('Corretora');
+  const iOnde = findCol('Onde');
+  const iInicio = findCol('Data In');
+  const iFim = findCol('Fim');
+
+  const body = data.slice(1);
+  investimentos = body.map(r => ({
+    cpf: (r[iCPF]||'').trim(),
+    objetivo: (r[iObjetivo]||'').trim(),
+    status: (r[iStatus]||'').trim(),
+    nome: (r[iNome]||'').trim(),
+    valor: parseValor(r[iValor]),
+    tipoRendimento: (r[iTipoRend]||'').trim(),
+    rendContratado: parsePercent(r[iRendCont]),
+    tipo: (r[iTipo]||'').trim(),
+    temFGC: (r[iFGC]||'').trim(),
+    corretora: (r[iCorretora]||'').trim(),
+    ondeEsta: (r[iOnde]||'').trim() || (r[iCorretora]||'').trim(),
+    dataInicio: parseDateBR(r[iInicio]),
+    dataFim: parseDateBR(r[iFim])
+  })).filter(r => r.nome || r.valor > 0);
+}
+
+function buildSelic(data){
+  const body = data.slice(1);
+  selicHistorico = body.map(r => {
+    const vig = (r[1]||'').trim();
+    const parts = vig.split('-').map(s=>s.trim()).filter(Boolean);
+    const start = parseDateBR(parts[0]);
+    const end = parts.length > 1 ? parseDateBR(parts[1]) : null; // null = em aberto
+    const taxa = parsePercent(r[2]);
+    return { start, end, taxa };
+  }).filter(r => r.start && !isNaN(r.taxa)).sort((a,b) => a.start - b.start);
+}
+
+function getSelicAt(date){
+  if(selicHistorico.length === 0) return 0;
+  let found = null;
+  for(const r of selicHistorico){
+    if(r.start <= date && (r.end === null || date <= r.end)) { found = r; break; }
+  }
+  if(found) return found.taxa;
+  // fora de qualquer faixa: usa a mais recente com start <= date, senão a mais antiga
+  const before = selicHistorico.filter(r => r.start <= date).sort((a,b)=>b.start-a.start)[0];
+  return before ? before.taxa : selicHistorico[0].taxa;
+}
+
+function buildIPCA(data){
+  const body = data.slice(1);
+  ipcaHistorico = {};
+  body.forEach(r => {
+    const key = parsePtMonth(r[0]);
+    const taxa = parsePercent(r[1]);
+    if(key && !isNaN(taxa) && r[1]) ipcaHistorico[key] = taxa;
+  });
+}
+
+function getIpcaAt(mesKey){
+  if(ipcaHistorico[mesKey] !== undefined) return ipcaHistorico[mesKey];
+  const keys = Object.keys(ipcaHistorico).sort((a,b) => monthSortKey(a)-monthSortKey(b));
+  const before = keys.filter(k => monthSortKey(k) <= monthSortKey(mesKey)).pop();
+  if(before) return ipcaHistorico[before];
+  return keys.length ? ipcaHistorico[keys[0]] : 0;
+}
+
+function buildTotalDinheiro(data){
+  const body = data.slice(1);
+  totalDinheiroHist = {};
+  body.forEach(r => {
+    const raw = (r[0]||'').trim(); // "04/2024"
+    if(!raw) return;
+    const [mm,yyyy] = raw.split('/');
+    if(!mm || !yyyy) return;
+    const key = `${mm.padStart(2,'0')}/${yyyy}`;
+    const valor = parseValor(r[1]);
+    if(r[1] && valor > 0) totalDinheiroHist[key] = valor;
+  });
+  totalDinheiroMonths = Object.keys(totalDinheiroHist).sort((a,b)=>monthSortKey(a)-monthSortKey(b));
+}
+
+// taxa bruta anualizada (%) de um investimento em um dado mês
+function taxaBrutaAnual(inv, mesKey){
+  const ref = monthKeyToDate(mesKey);
+  const selic = getSelicAt(ref);
+  const cdi = selic - 0.1;
+  const ipca = getIpcaAt(mesKey);
+  const t = inv.tipoRendimento || '';
+  if(t.includes('Selic+')) return selic + inv.rendContratado;
+  if(t.includes('CDI')) return cdi * (inv.rendContratado/100);
+  if(t.includes('IPCA+')) return ipca + inv.rendContratado;
+  return inv.rendContratado; // Pré-fixado ou outro
+}
+function isStatusAtivo(inv){ return (inv.status||'').includes('Ativo'); }
+function isStatusEncerrado(inv){ return (inv.status||'').includes('Encerrado'); }
+function temFGCSim(inv){
+  const t = (inv.temFGC||'').trim();
+  if(!t) return false;
+  return !t.includes('Não') && !t.includes('Nao');
+}
+// IR calculado por prazo decorrido (LCI/LCA são isentos)
+function irRateForDays(days){
+  if(days <= 180) return 22.5;
+  if(days <= 360) return 20.0;
+  if(days <= 720) return 17.5;
+  return 15.0;
+}
+function irRateFor(inv, mesKey){
+  const tipo = (inv.tipo||'');
+  if(tipo.includes('LCI') || tipo.includes('LCA')) return 0;
+  if(!inv.dataInicio) return 15.0;
+  const ref = monthKeyToDate(mesKey);
+  const days = Math.floor((ref - inv.dataInicio) / (1000*60*60*24));
+  return irRateForDays(Math.max(days, 0));
+}
+function taxaLiquidaAnual(inv, mesKey){
+  const bruta = taxaBrutaAnual(inv, mesKey);
+  const ir = irRateFor(inv, mesKey);
+  return bruta * (1 - ir/100);
+}
+function investAtivoNoMes(inv, mesKey){
+  const ref = monthKeyToDate(mesKey);
+  if(inv.dataInicio && inv.dataInicio > ref) return false;
+  if(inv.dataFim && inv.dataFim < ref) return false;
+  if(!inv.dataFim && isStatusEncerrado(inv)) return false;
+  return true;
+}
+
 /* ---------------- tabs ---------------- */
 document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
@@ -345,6 +814,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     const target = btn.dataset.tab;
     document.getElementById('tab-mes').classList.toggle('active', target==='mes');
     document.getElementById('tab-tempo').classList.toggle('active', target==='tempo');
+    document.getElementById('tab-invest').classList.toggle('active', target==='invest');
   });
 });
 
