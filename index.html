@@ -97,6 +97,12 @@
   .invest-pie-grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap:28px 24px; margin-top:10px; }
   .invest-pie-item h3{ font-family:'Fraunces',serif; font-size:15px; font-weight:600; margin:0 0 8px; color:var(--paper); text-align:center; }
   .chart-box.pie-tall{ height:320px; }
+  .stat-line{
+    display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px;
+    background:var(--surface-2); border:1px solid var(--line); border-radius:8px; padding:14px 18px; margin:10px 0 18px;
+  }
+  .stat-line-k{ font-family:'IBM Plex Mono',monospace; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-dim); }
+  .stat-line-v{ font-family:'IBM Plex Mono',monospace; font-size:22px; font-weight:600; color:var(--gold); }
 
   table{ width:100%; border-collapse:collapse; font-size:14.5px; }
   th{ text-align:left; font-family:'IBM Plex Mono',monospace; font-size:11.5px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-dim); padding:9px 10px; border-bottom:1px solid var(--line); }
@@ -222,6 +228,10 @@
       <div class="card">
         <h2>Carteira: foto do momento atual</h2>
         <span class="hint">considera apenas investimentos com status "Ativo", ponderado pelo valor atual</span>
+        <div class="stat-line">
+          <span class="stat-line-k">Disponível para saque (liquidez diária)</span>
+          <span class="stat-line-v" id="liquidezDiariaTotal">—</span>
+        </div>
         <div class="invest-pie-grid">
           <div class="invest-pie-item"><h3>Tipos de rendimento</h3><div class="chart-box pie-tall"><canvas id="pieRendimento"></canvas></div></div>
           <div class="invest-pie-item"><h3>Tipos de investimento</h3><div class="chart-box pie-tall"><canvas id="pieTipo"></canvas></div></div>
@@ -290,6 +300,20 @@
         <h2>Indicadores da economia</h2>
         <span class="hint">Selic (meta) e IPCA (acumulado 12 meses) mês a mês</span>
         <div class="chart-box tall"><canvas id="indicadoresChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h2>Investimentos ativos — dados brutos</h2>
+        <span class="hint">ordenado do maior pro menor valor atual</span>
+        <div style="overflow-x:auto;">
+        <table>
+          <thead><tr>
+            <th>Nome do investimento</th><th>Tipo</th><th style="text-align:right;">Valor inicial</th><th style="text-align:right;">Valor atual</th>
+            <th>Tipo de rendimento</th><th>Rendimento contratado</th><th>Onde está</th><th>Liquidez</th><th>Data início</th><th>Data fim</th>
+          </tr></thead>
+          <tbody id="investTableBody"></tbody>
+        </table>
+        </div>
       </div>
 
     </div>
@@ -502,6 +526,28 @@ function renderInvestTab(){
   renderPieChart('pieCPF', groupSum(ativos, i=>i.cpf));
   renderPieChart('pieCorretora', groupSum(ativos, i=>i.corretora));
 
+  // liquidez diária: total disponível pra saque
+  const liquidezDiaria = ativos
+    .filter(i => (i.liquidez||'').toLowerCase().includes('diária') || (i.liquidez||'').toLowerCase().includes('diaria'))
+    .reduce((s,i)=>s+i.valor, 0);
+  document.getElementById('liquidezDiariaTotal').textContent = fmtBRL(liquidezDiaria);
+
+  // tabela de dados brutos — só ativos, maior valor atual primeiro
+  const tabelaRows = ativos.slice().sort((a,b) => b.valor - a.valor);
+  document.getElementById('investTableBody').innerHTML = tabelaRows.map(inv => `
+    <tr>
+      <td>${inv.nome || '(sem nome)'}</td>
+      <td>${inv.tipo}</td>
+      <td class="val">${fmtBRL(inv.valorInicial)}</td>
+      <td class="val">${fmtBRL(inv.valor)}</td>
+      <td>${inv.tipoRendimento}</td>
+      <td>${inv.rendContratado.toFixed(2).replace('.',',')}%</td>
+      <td>${inv.ondeEsta}</td>
+      <td>${inv.liquidez}</td>
+      <td>${inv.dataInicioRaw || '—'}</td>
+      <td>${inv.dataFimRaw || '—'}</td>
+    </tr>`).join('');
+
   // FGC por instituição (onde está) — só investimentos marcados com "Tem FGC"
   const fgcAtivos = ativos.filter(temFGCSim);
   const byOnde = groupSum(fgcAtivos, i=>i.ondeEsta);
@@ -635,6 +681,7 @@ async function loadData(){
     buildSelic(selicRaw);
     buildIPCA(ipcaRaw);
     buildTotalDinheiro(totalRaw);
+    computeInvestValores();
 
     if(monthsSorted.length === 0) throw new Error('Nenhum mês encontrado nos dados.');
 
@@ -725,9 +772,11 @@ function buildInvestimentos(data){
   const iObjetivo = findCol('Objetivo');
   const iStatus = findCol('Status');
   const iNome = findCol('Nome');
-  const iValor = findCol('Valor');
+  const iValorRef = findCol('Valor em'); // ex: "Valor em ago/2026" — só referência, não usado no cálculo
+  const iValorInicial = findCol('Valor inicial');
   const iTipoRend = findCol('Tipo de rendimento');
   const iRendCont = findCol('Rendimento contratado');
+  const iLiquidez = findCol('Liquidez');
   const iTipo = header.findIndex(h => (h||'').trim() === 'Tipo');
   const iFGC = findCol('FGC');
   const iCorretora = findCol('Corretora');
@@ -741,16 +790,44 @@ function buildInvestimentos(data){
     objetivo: (r[iObjetivo]||'').trim(),
     status: (r[iStatus]||'').trim(),
     nome: (r[iNome]||'').trim(),
-    valor: parseValor(r[iValor]),
+    valorRef: parseValor(r[iValorRef]),
+    valorInicial: parseValor(r[iValorInicial]),
+    valor: 0, // calculado depois em computeInvestValores(), com Selic/IPCA já carregados
     tipoRendimento: (r[iTipoRend]||'').trim(),
     rendContratado: parsePercent(r[iRendCont]),
+    liquidez: (r[iLiquidez]||'').trim(),
     tipo: (r[iTipo]||'').trim(),
     temFGC: (r[iFGC]||'').trim(),
     corretora: (r[iCorretora]||'').trim(),
     ondeEsta: (r[iOnde]||'').trim() || (r[iCorretora]||'').trim(),
+    dataInicioRaw: (r[iInicio]||'').trim(),
+    dataFimRaw: (r[iFim]||'').trim(),
     dataInicio: parseDateBR(r[iInicio]),
     dataFim: parseDateBR(r[iFim])
-  })).filter(r => r.nome || r.valor > 0);
+  })).filter(r => r.nome || r.valorRef > 0 || r.valorInicial > 0);
+}
+
+// calcula o valor atual de cada investimento a partir do valor inicial + rendimento acumulado mês a mês
+// (precisa rodar depois de buildSelic/buildIPCA, já que taxaLiquidaAnual depende delas)
+function computeValorAtual(inv){
+  if(!inv.dataInicio || !(inv.valorInicial > 0)) return inv.valorRef || 0;
+  const now = new Date();
+  const limite = (inv.dataFim && inv.dataFim < now) ? inv.dataFim : now;
+  const endKey = `${String(limite.getMonth()+1).padStart(2,'0')}/${limite.getFullYear()}`;
+  let valor = inv.valorInicial;
+  let curMes = `${String(inv.dataInicio.getMonth()+1).padStart(2,'0')}/${inv.dataInicio.getFullYear()}`;
+  let guard = 0;
+  while(monthSortKey(curMes) <= monthSortKey(endKey) && guard < 600){
+    const taxaAnual = taxaLiquidaAnual(inv, curMes);
+    const taxaMensal = Math.pow(1 + taxaAnual/100, 1/12) - 1;
+    valor = valor * (1 + taxaMensal);
+    curMes = addMonthsToKey(curMes, 1);
+    guard++;
+  }
+  return valor;
+}
+function computeInvestValores(){
+  investimentos.forEach(inv => { inv.valor = computeValorAtual(inv); });
 }
 
 function buildSelic(data){
