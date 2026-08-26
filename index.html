@@ -267,7 +267,7 @@
             </select>
           </div>
         </div>
-        <span class="hint">meses reais = colunas da planilha (Total dinheiro) · meses futuros = calculado a partir dos dados de Investimentos</span>
+        <span class="hint">apenas meses já registrados na planilha (colunas de rendimento da aba "Total de dinheiro") — sem projeção</span>
         <div class="chart-box tall"><canvas id="rendimentoChart"></canvas></div>
       </div>
 
@@ -381,17 +381,18 @@ function fetchCSV(url){
 }
 
 function buildInvestMonthsSorted(){
-  if(totalDinheiroMonths.length === 0){ investMonthsSorted = []; return; }
-  const start = totalDinheiroMonths[0];
-  const now = new Date();
-  const currentKey = `${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
-  const horizonKey = addMonthsToKey(currentKey, 12);
-  const lastHist = totalDinheiroMonths[totalDinheiroMonths.length-1];
-  const end = monthSortKey(horizonKey) > monthSortKey(lastHist) ? horizonKey : lastHist;
+  const allKeys = new Set([...totalDinheiroMonths, ...Object.keys(ipcaHistorico)]);
+  selicHistorico.forEach(r => {
+    if(r.start) allKeys.add(`${String(r.start.getMonth()+1).padStart(2,'0')}/${r.start.getFullYear()}`);
+  });
+  if(allKeys.size === 0){ investMonthsSorted = []; return; }
+  const sortedKeys = Array.from(allKeys).sort((a,b)=>monthSortKey(a)-monthSortKey(b));
+  const start = sortedKeys[0];
+  const end = sortedKeys[sortedKeys.length-1];
   const list = [];
   let cur = start;
   let guard = 0;
-  while(monthSortKey(cur) <= monthSortKey(end) && guard < 240){
+  while(monthSortKey(cur) <= monthSortKey(end) && guard < 400){
     list.push(cur);
     cur = addMonthsToKey(cur, 1);
     guard++;
@@ -399,42 +400,12 @@ function buildInvestMonthsSorted(){
   investMonthsSorted = list;
 }
 
-function waAnnualParaMes(mes){
-  const ativos = investimentos.filter(inv => investAtivoNoMes(inv, mes) && inv.valor > 0);
-  if(!ativos.length) return null;
-  const sumValor = ativos.reduce((s,i)=>s+i.valor,0);
-  const sumWeighted = ativos.reduce((s,i)=>s+i.valor*taxaLiquidaAnual(i,mes),0);
-  return sumValor > 0 ? sumWeighted/sumValor : null;
-}
-
-// total de dinheiro real + projeção (usada internamente, ex: salário aposentadoria)
-function computeFullTotalSeriesMap(){
-  const map = {};
-  let lastValue = null;
-  investMonthsSorted.forEach(mes => {
-    if(totalDinheiroHist[mes] !== undefined){
-      lastValue = totalDinheiroHist[mes];
-      map[mes] = { valor:lastValue, isReal:true };
-    } else {
-      const waAnnual = waAnnualParaMes(mes);
-      const monthlyGrowth = waAnnual !== null ? Math.pow(1+waAnnual/100, 1/12)-1 : 0;
-      lastValue = lastValue !== null ? lastValue*(1+monthlyGrowth) : 0;
-      map[mes] = { valor:lastValue, isReal:false };
-    }
-  });
-  return map;
-}
-
-// rendimento: meses reais vêm direto da planilha (colunas C/D); meses futuros são calculados
+// rendimento: só meses reais, direto das colunas C/D da planilha "Total de dinheiro" — sem cálculo/projeção
 function getRendSeries(rangeMonths){
-  return rangeMonths.map(mes => {
-    if(rendTotalHist[mes] !== undefined || rendInvestHist[mes] !== undefined){
-      return { total: rendTotalHist[mes] !== undefined ? rendTotalHist[mes] : null,
-               soInvest: rendInvestHist[mes] !== undefined ? rendInvestHist[mes] : null };
-    }
-    const waAnnual = waAnnualParaMes(mes);
-    return { total: waAnnual, soInvest: waAnnual };
-  });
+  return rangeMonths.map(mes => ({
+    total: rendTotalHist[mes] !== undefined ? rendTotalHist[mes] : null,
+    soInvest: rendInvestHist[mes] !== undefined ? rendInvestHist[mes] : null
+  }));
 }
 
 const investCharts = {};
@@ -607,10 +578,9 @@ function renderInvestTab(){
     }
   });
 
-  // Salário aposentadoria — usa a série completa (real + projeção) internamente
-  const fullTotalMap = computeFullTotalSeriesMap();
+  // Salário aposentadoria — só meses com Total de dinheiro real
   const taxaApos = parseFloat(document.getElementById('taxaAposInput').value) || 8;
-  const aposSeries = rangeMonths.map(m => fullTotalMap[m] ? (taxaApos/100 * fullTotalMap[m].valor) / 12 : null);
+  const aposSeries = rangeMonths.map(m => totalDinheiroHist[m] !== undefined ? (taxaApos/100 * totalDinheiroHist[m]) / 12 : null);
   if(investCharts.aposentadoriaChart) investCharts.aposentadoriaChart.destroy();
   investCharts.aposentadoriaChart = new Chart(document.getElementById('aposentadoriaChart'), {
     type:'line',
