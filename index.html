@@ -98,7 +98,7 @@
   .invest-table-grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap:24px; margin-top:22px; }
   @media (max-width:640px){ .invest-table-grid{ grid-template-columns:1fr; } }
   .invest-pie-item h3{ font-family:'Fraunces',serif; font-size:15px; font-weight:600; margin:0 0 8px; color:var(--paper); text-align:center; }
-  .chart-box.pie-tall{ height:320px; }
+  .chart-box.pie-tall{ height:360px; }
   .stat-line{
     display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px;
     background:var(--surface-2); border:1px solid var(--line); border-radius:8px; padding:14px 18px; margin:10px 0 18px;
@@ -108,6 +108,9 @@
   .stat-hero{ text-align:center; margin:6px 0 14px; }
   .stat-hero-k{ font-family:'IBM Plex Mono',monospace; font-size:12px; text-transform:uppercase; letter-spacing:.1em; color:var(--ink-dim); display:block; margin-bottom:6px; }
   .stat-hero-v{ font-family:'Fraunces',serif; font-size:clamp(32px,5vw,46px); font-weight:700; color:var(--gold); }
+  .stat-mid{ text-align:center; margin:0 0 14px; }
+  .stat-mid-k{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-dim); display:block; margin-bottom:4px; }
+  .stat-mid-v{ font-family:'Fraunces',serif; font-size:26px; font-weight:600; color:var(--sage); }
   table.compact{ font-size:12px; }
   table.compact th{ font-size:10px; padding:7px 8px; }
   table.compact td{ padding:6px 8px; }
@@ -239,6 +242,10 @@
         <div class="stat-hero">
           <span class="stat-hero-k">Total em investimentos ativos</span>
           <span class="stat-hero-v" id="totalInvestidoAtivos">—</span>
+        </div>
+        <div class="stat-mid">
+          <span class="stat-mid-k">Salário aposentadoria (mês mais recente)</span>
+          <span class="stat-mid-v" id="salarioAposAtual">—</span>
         </div>
         <div class="stat-line">
           <span class="stat-line-k">Disponível para saque (liquidez diária)</span>
@@ -460,29 +467,42 @@ function getRendSeries(rangeMonths){
 }
 
 const investCharts = {};
-function renderPieChart(canvasId, dataObj, opts){
+function renderPieChart(canvasId, dataObj, colorOffset){
   if(investCharts[canvasId]) investCharts[canvasId].destroy();
+  const offset = colorOffset || 0;
   const entries = Object.entries(dataObj).sort((a,b)=>b[1]-a[1]);
   const total = entries.reduce((s,e)=>s+e[1],0);
+  const colors = entries.map((_,i) => COLORS[(i+offset) % COLORS.length]);
   investCharts[canvasId] = new Chart(document.getElementById(canvasId), {
     type: 'pie',
-    data: { labels: entries.map(e=>e[0]), datasets: [{ data: entries.map(e=>e[1]), backgroundColor: COLORS, borderColor:'#16201b', borderWidth:2 }] },
+    data: { labels: entries.map(e=>e[0]), datasets: [{ data: entries.map(e=>e[1]), backgroundColor: colors, borderColor:'#16201b', borderWidth:2 }] },
     options: {
       responsive:true, maintainAspectRatio:false,
-      layout: { padding: 36 },
+      layout: { padding: 8 },
       plugins: {
-        legend: { display:false },
+        legend: {
+          position:'bottom',
+          labels: {
+            color:'#e9e4d8', font:{size:11}, boxWidth:12, padding:9,
+            generateLabels: (chart) => {
+              const ds = chart.data.datasets[0];
+              return chart.data.labels.map((label,i) => {
+                const pct = total ? (ds.data[i]/total*100).toFixed(1) : '0.0';
+                return { text: `${label} — ${pct}%`, fillStyle: ds.backgroundColor[i], strokeStyle: ds.backgroundColor[i], index:i };
+              });
+            }
+          }
+        },
         tooltip: { callbacks: { label: ctx => {
           const pct = total ? (ctx.parsed/total*100).toFixed(1) : 0;
           return `${ctx.label}: ${fmtBRL(ctx.parsed)} (${pct}%)`;
         } } },
         datalabels: {
-          display:true, clip:false, color:'#e9e4d8', anchor:'end', align:'end', offset:10,
-          font:{ size:11, weight:'600' },
-          formatter: (value, ctx) => {
-            const label = ctx.chart.data.labels[ctx.dataIndex];
-            const pct = total ? (value/total*100).toFixed(1) : 0;
-            return [label, pct+'%'];
+          display:true, color:'#191307', anchor:'center', align:'center',
+          font:{ size:11, weight:'700' },
+          formatter: (value) => {
+            const pct = total ? (value/total*100) : 0;
+            return pct >= 5 ? pct.toFixed(0)+'%' : '';
           }
         }
       }
@@ -556,10 +576,10 @@ function renderInvestTab(){
     return out;
   };
 
-  renderPieChart('pieRendimento', groupSum(ativos, i=>i.tipoRendimento));
-  renderPieChart('pieTipo', groupSum(ativos, i=>i.tipo));
+  renderPieChart('pieRendimento', groupSum(ativos, i=>i.tipoRendimento), 0);
+  renderPieChart('pieTipo', groupSum(ativos, i=>i.tipo), 4);
   renderGroupTable('tableObjetivo', groupSum(ativos, i=>i.objetivo));
-  renderPieChart('pieCPF', groupSum(ativos, i=>i.cpf));
+  renderPieChart('pieCPF', groupSum(ativos, i=>i.cpf), 8);
   renderGroupTable('tableCorretora', groupSum(ativos, i=>i.corretora));
 
   // total em investimentos ativos + liquidez diária
@@ -569,6 +589,13 @@ function renderInvestTab(){
     .filter(i => (i.liquidez||'').toLowerCase().includes('diária') || (i.liquidez||'').toLowerCase().includes('diaria'))
     .reduce((s,i)=>s+i.valor, 0);
   document.getElementById('liquidezDiariaTotal').textContent = fmtBRL(liquidezDiaria);
+
+  if(totalDinheiroMonths.length){
+    const lastMes = totalDinheiroMonths[totalDinheiroMonths.length-1];
+    const taxaAposAtual = parseFloat(document.getElementById('taxaAposInput').value) || 8;
+    const salarioAtual = (taxaAposAtual/100 * totalDinheiroHist[lastMes]) / 12;
+    document.getElementById('salarioAposAtual').textContent = `${fmtBRL(salarioAtual)} (${monthLabel(lastMes)})`;
+  }
 
   // tabela de dados brutos — só ativos, maior rentabilidade líquida atual primeiro
   const tabelaRows = ativos.slice().sort((a,b) => (b.rentabilidadeAtual ?? -Infinity) - (a.rentabilidadeAtual ?? -Infinity));
@@ -1212,6 +1239,8 @@ function buildCategoryDetailSelector(){
   const sel = document.getElementById('catDetailSelect');
   sel.innerHTML = '';
   Object.keys(catMap).forEach(cat => { const o=document.createElement('option'); o.value=cat; o.textContent=cat; sel.appendChild(o); });
+  const comidaKey = Object.keys(catMap).find(c => c.toLowerCase().includes('comida'));
+  if(comidaKey) sel.value = comidaKey;
   sel.addEventListener('change', () => { buildSubDetailSelector(sel.value); renderTrend(); });
   buildSubDetailSelector(sel.value);
 }
@@ -1222,6 +1251,8 @@ function buildSubDetailSelector(categoria){
   const info = catMap[categoria];
   if(!info) return;
   info.subcategorias.forEach(s => { const o=document.createElement('option'); o.value=s.nome; o.textContent=s.nome; sel.appendChild(o); });
+  const mercado = info.subcategorias.find(s => s.nome.toLowerCase().includes('mercado'));
+  if(mercado) sel.value = mercado.nome;
   sel.onchange = renderTrend;
 }
 
