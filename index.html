@@ -95,11 +95,11 @@
   .cat-grid{ display:grid; grid-template-columns: 1fr; gap:14px; margin-top:10px; }
   .cat-trend-grid{ display:grid; grid-template-columns: 1fr; gap:22px; margin-top:10px; }
   .cat-trend-item h3{ font-family:'Fraunces',serif; font-size:16px; font-weight:600; margin:0 0 8px; color:var(--paper); }
-  .invest-pie-grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap:28px 24px; margin-top:10px; }
+  .invest-pie-grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap:16px 24px; margin-top:10px; }
   .invest-table-grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap:24px; margin-top:22px; }
   @media (max-width:640px){ .invest-table-grid{ grid-template-columns:1fr; } }
   .invest-pie-item h3{ font-family:'Fraunces',serif; font-size:15px; font-weight:600; margin:0 0 8px; color:var(--paper); text-align:center; }
-  .chart-box.pie-tall{ height:420px; }
+  .chart-box.pie-tall{ height:390px; }
   .stat-line{
     display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px;
     background:var(--surface-2); border:1px solid var(--line); border-radius:8px; padding:14px 18px; margin:10px 0 18px;
@@ -484,10 +484,10 @@ const investCharts = {};
 let investTableSort = 'rentabilidade';
 function sortAtivosForTable(ativos){
   const arr = ativos.slice();
-  const dateKey = d => d ? d.getTime() : -Infinity;
+  const dateKeyAsc = d => d ? d.getTime() : Infinity; // sem data vai pro final
   if(investTableSort === 'valor') arr.sort((a,b) => b.valor - a.valor);
-  else if(investTableSort === 'inicio') arr.sort((a,b) => dateKey(b.dataInicio) - dateKey(a.dataInicio));
-  else if(investTableSort === 'fim') arr.sort((a,b) => dateKey(b.dataFim) - dateKey(a.dataFim));
+  else if(investTableSort === 'inicio') arr.sort((a,b) => dateKeyAsc(a.dataInicio) - dateKeyAsc(b.dataInicio));
+  else if(investTableSort === 'fim') arr.sort((a,b) => dateKeyAsc(a.dataFim) - dateKeyAsc(b.dataFim));
   else arr.sort((a,b) => (b.rentabilidadeAtual ?? -Infinity) - (a.rentabilidadeAtual ?? -Infinity));
   return arr;
 }
@@ -537,22 +537,23 @@ const pieOutlabelsPlugin = {
       const angle = (arc.startAngle + arc.endAngle) / 2;
       const pct = dataset.data[i]/total*100;
       const x0 = cx + Math.cos(angle)*outerR, y0 = cy + Math.sin(angle)*outerR;
+      const yNat = cy + Math.sin(angle) * (outerR+24); // ponto já fora do círculo — base real do empilhamento
       const side = Math.cos(angle) >= 0 ? 'right' : 'left';
       const elbowX = cx + Math.cos(angle) * (outerR+16);
       const maxWidth = side==='right' ? Math.max(50, chartArea.right-8-(elbowX+6)) : Math.max(50, (elbowX-6)-(chartArea.left+8));
       const labelLines = wrapPieLabel(ctx, chart.data.labels[i], maxWidth);
       const lines = [...labelLines, pct.toFixed(1)+'%'];
-      return { i, angle, value: dataset.data[i], color: dataset.backgroundColor[i], x0, y0, side, elbowX, maxWidth, lines };
+      return { i, angle, value: dataset.data[i], color: dataset.backgroundColor[i], x0, y0, yNat, side, elbowX, maxWidth, lines };
     }).filter(it => it.value > 0);
 
     const maxLines = Math.max(1, ...items.map(it => it.lines.length));
     const margin = maxLines*lineHeight + 8;
 
     ['left','right'].forEach(side => {
-      const group = items.filter(it => it.side === side).sort((a,b) => a.y0 - b.y0);
+      const group = items.filter(it => it.side === side).sort((a,b) => a.yNat - b.yNat);
       const n = group.length;
       if(!n) return;
-      let ys = group.map(it => it.y0);
+      let ys = group.map(it => it.yNat);
       for(let iter=0; iter<14; iter++){
         for(let k=1;k<n;k++){
           if(ys[k]-ys[k-1] < margin){
@@ -601,8 +602,8 @@ function renderPieChart(canvasId, dataObj, colorOffset){
     data: { labels: entries.map(e=>e[0]), datasets: [{ data: entries.map(e=>e[1]), backgroundColor: colors, borderColor:'#16201b', borderWidth:2 }] },
     options: {
       responsive:true, maintainAspectRatio:false,
-      radius: '52%',
-      layout: { padding: { top:16, bottom:16, left:8, right:8 } },
+      radius: '66%',
+      layout: { padding: { top:14, bottom:14, left:6, right:6 } },
       plugins: {
         legend: { display:false },
         datalabels: { display:false },

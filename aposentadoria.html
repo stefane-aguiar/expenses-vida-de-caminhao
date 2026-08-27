@@ -1160,7 +1160,7 @@
         }
         
         // Mês/Ano iniciais = mês/ano atuais (calculado no momento em que a página abre)
-        (function setCurrentMonthYear(){
+        function setCurrentMonthYear(){
             const now = new Date();
             const ms = document.getElementById('startMonth');
             const ys = document.getElementById('startYear');
@@ -1169,7 +1169,12 @@
                 const opt = Array.from(ys.options).find(o => o.value === String(now.getFullYear()));
                 if(opt) ys.value = String(now.getFullYear());
             }
-        })();
+        }
+        setCurrentMonthYear();
+        // alguns navegadores restauram valores de formulário antigos ao recarregar a página
+        // (inclusive dentro de iframe) — reaplica o default depois desse processo também
+        window.addEventListener('pageshow', function(){ setCurrentMonthYear(); updateChart(); });
+        setTimeout(function(){ setCurrentMonthYear(); updateChart(); }, 150);
 
         // Recebe o Patrimônio Atual calculado no dashboard principal (quando embedado via iframe)
         window.addEventListener('message', function(e){
