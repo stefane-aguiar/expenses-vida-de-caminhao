@@ -361,8 +361,8 @@
 
     <!-- ===================== TAB: APOSENTADORIA ===================== -->
     <div class="tab-panel" id="tab-apos">
-      <div class="card" style="padding:0; overflow:hidden;">
-        <iframe src="aposentadoria.html" style="width:100%; height:1400px; border:none; display:block;" title="Calculadora de aposentadoria"></iframe>
+      <div class="card" style="padding:0;">
+        <iframe id="aposIframe" src="aposentadoria.html" style="width:100%; height:600px; border:none; display:block; overflow:hidden;" title="Calculadora de aposentadoria" scrolling="no"></iframe>
       </div>
     </div>
 
@@ -601,7 +601,8 @@ function renderPieChart(canvasId, dataObj, colorOffset){
     data: { labels: entries.map(e=>e[0]), datasets: [{ data: entries.map(e=>e[1]), backgroundColor: colors, borderColor:'#16201b', borderWidth:2 }] },
     options: {
       responsive:true, maintainAspectRatio:false,
-      layout: { padding: { top:20, bottom:20, left:100, right:100 } },
+      radius: '52%',
+      layout: { padding: { top:16, bottom:16, left:8, right:8 } },
       plugins: {
         legend: { display:false },
         datalabels: { display:false },
@@ -855,6 +856,9 @@ async function loadData(){
     buildIPCA(ipcaRaw);
     buildTotalDinheiro(totalRaw);
     computeInvestValores();
+
+    window.__latestTotalDinheiro = totalDinheiroMonths.length ? totalDinheiroHist[totalDinheiroMonths[totalDinheiroMonths.length-1]] : null;
+    if(typeof trySendAposDefaults === 'function') trySendAposDefaults();
 
     if(monthsSorted.length === 0) throw new Error('Nenhum mês encontrado nos dados.');
 
@@ -1130,6 +1134,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.getElementById('tab-tempo').classList.toggle('active', target==='tempo');
     document.getElementById('tab-invest').classList.toggle('active', target==='invest');
     document.getElementById('tab-apos').classList.toggle('active', target==='apos');
+    if(target === 'apos') setTimeout(() => { if(window.resizeAposIframe) window.resizeAposIframe(); }, 50);
   });
 });
 
@@ -1474,6 +1479,42 @@ function renderTrend(){
 }
 
 loadData();
+
+// aba Aposentadoria: ajusta a altura do iframe ao conteúdo real, sem gerar scroll duplicado
+let aposIframeLoaded = false;
+function trySendAposDefaults(){
+  const iframe = document.getElementById('aposIframe');
+  if(!iframe || !aposIframeLoaded) return;
+  if(window.__latestTotalDinheiro == null) return;
+  iframe.contentWindow.postMessage({ type:'aposDefaults', patrimonio: window.__latestTotalDinheiro }, '*');
+}
+(function setupAposIframe(){
+  const iframe = document.getElementById('aposIframe');
+  if(!iframe) return;
+  iframe.addEventListener('load', () => {
+    aposIframeLoaded = true;
+    trySendAposDefaults();
+    try {
+      const doc = iframe.contentDocument || iframe.contentWindow.document;
+      const resize = () => {
+        const h = Math.max(doc.documentElement.scrollHeight, doc.body ? doc.body.scrollHeight : 0);
+        if(h > 0) iframe.style.height = h + 'px';
+      };
+      window.resizeAposIframe = resize;
+      resize();
+      if(window.ResizeObserver && doc.body){
+        new ResizeObserver(resize).observe(doc.body);
+      } else {
+        setInterval(resize, 600); // fallback pra navegadores sem ResizeObserver
+      }
+      // recalcula também em cliques dentro do iframe (toggles, inputs que mudam o layout)
+      doc.addEventListener('click', () => setTimeout(resize, 50));
+      doc.addEventListener('input', () => setTimeout(resize, 50));
+    } catch(e) {
+      iframe.style.height = '1500px'; // fallback se por algum motivo não der pra acessar o conteúdo
+    }
+  });
+})();
 </script>
 </body>
 </html>

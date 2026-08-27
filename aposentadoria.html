@@ -371,7 +371,7 @@
                         </div>
                         <div class="param-group">
                             <label>Valor da Venda (R$)</label>
-                            <input type="number" id="saleValue" value="400000" onchange="updateChart()">
+                            <input type="number" id="saleValue" value="500000" onchange="updateChart()">
                         </div>
                         <div class="param-group">
                             <label>Redução no Aporte Mensal (R$)</label>
@@ -379,7 +379,7 @@
                         </div>
                         <div class="param-group">
                             <label>Valor da Casa Futura (R$)</label>
-                            <input type="number" id="futureHouseValue" value="500000" onchange="updateChart()">
+                            <input type="number" id="futureHouseValue" value="700000" onchange="updateChart()">
                         </div>
                     </div>
                 </div>
@@ -1159,6 +1159,26 @@
             });
         }
         
+        // Mês/Ano iniciais = mês/ano atuais (calculado no momento em que a página abre)
+        (function setCurrentMonthYear(){
+            const now = new Date();
+            const ms = document.getElementById('startMonth');
+            const ys = document.getElementById('startYear');
+            if(ms) ms.value = String(now.getMonth());
+            if(ys){
+                const opt = Array.from(ys.options).find(o => o.value === String(now.getFullYear()));
+                if(opt) ys.value = String(now.getFullYear());
+            }
+        })();
+
+        // Recebe o Patrimônio Atual calculado no dashboard principal (quando embedado via iframe)
+        window.addEventListener('message', function(e){
+            if(e.data && e.data.type === 'aposDefaults' && typeof e.data.patrimonio === 'number' && e.data.patrimonio > 0){
+                const el = document.getElementById('currentWealth');
+                if(el){ el.value = Math.round(e.data.patrimonio); updateChart(); }
+            }
+        });
+
         // Inicializar
         updateChart();
     </script>
