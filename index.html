@@ -56,6 +56,7 @@
     color:var(--ink-dim); padding:9px 13px; border-radius:20px; cursor:pointer;
   }
   .chip:hover{ border-color: var(--gold-dim); color: var(--paper); }
+  .chip.active{ background: var(--gold); color:#191307; border-color:var(--gold); font-weight:600; }
 
   /* receipt */
   .receipt{
@@ -98,7 +99,7 @@
   .invest-table-grid{ display:grid; grid-template-columns: repeat(2, 1fr); gap:24px; margin-top:22px; }
   @media (max-width:640px){ .invest-table-grid{ grid-template-columns:1fr; } }
   .invest-pie-item h3{ font-family:'Fraunces',serif; font-size:15px; font-weight:600; margin:0 0 8px; color:var(--paper); text-align:center; }
-  .chart-box.pie-tall{ height:380px; }
+  .chart-box.pie-tall{ height:420px; }
   .stat-line{
     display:flex; justify-content:space-between; align-items:baseline; flex-wrap:wrap; gap:8px;
     background:var(--surface-2); border:1px solid var(--line); border-radius:8px; padding:14px 18px; margin:10px 0 18px;
@@ -139,8 +140,9 @@
 
     <div class="tabs">
       <button class="tab-btn active" data-tab="mes">Gastos do mês</button>
-      <button class="tab-btn" data-tab="tempo">Evolução no tempo</button>
+      <button class="tab-btn" data-tab="tempo">Evolução dos gastos</button>
       <button class="tab-btn" data-tab="invest">Investimentos</button>
+      <button class="tab-btn" data-tab="apos">Aposentadoria</button>
     </div>
 
     <!-- ===================== TAB: MÊS ===================== -->
@@ -338,18 +340,30 @@
 
       <div class="card">
         <h2>Investimentos ativos — dados brutos</h2>
-        <span class="hint">ordenado da maior pra menor rentabilidade líquida atual</span>
+        <div class="chip-row" id="investSortChips" style="margin-bottom:10px;">
+          <button class="chip sort-chip active" data-sort="rentabilidade">Rentabilidade líq.</button>
+          <button class="chip sort-chip" data-sort="valor">Valor atual</button>
+          <button class="chip sort-chip" data-sort="inicio">Data início</button>
+          <button class="chip sort-chip" data-sort="fim">Data fim</button>
+        </div>
         <div style="overflow-x:auto;">
         <table class="compact">
           <thead><tr>
             <th>Nome do investimento</th><th>Tipo</th><th style="text-align:center;">Rentabilidade líq. atual</th><th style="text-align:right;">Valor inicial</th><th style="text-align:right;">Valor atual</th>
-            <th>Tipo de rendimento</th><th>Rendimento contratado</th><th>Onde está</th><th>Liquidez</th><th>Data início</th>
+            <th>Tipo de rendimento</th><th>Rendimento contratado</th><th>Onde está</th><th>Liquidez</th><th>Data início</th><th>Data fim</th>
           </tr></thead>
           <tbody id="investTableBody"></tbody>
         </table>
         </div>
       </div>
 
+    </div>
+
+    <!-- ===================== TAB: APOSENTADORIA ===================== -->
+    <div class="tab-panel" id="tab-apos">
+      <div class="card" style="padding:0; overflow:hidden;">
+        <iframe src="aposentadoria.html" style="width:100%; height:1400px; border:none; display:block;" title="Calculadora de aposentadoria"></iframe>
+      </div>
     </div>
 
   </div>
@@ -467,7 +481,41 @@ function getRendSeries(rangeMonths){
 }
 
 const investCharts = {};
+let investTableSort = 'rentabilidade';
+function sortAtivosForTable(ativos){
+  const arr = ativos.slice();
+  const dateKey = d => d ? d.getTime() : -Infinity;
+  if(investTableSort === 'valor') arr.sort((a,b) => b.valor - a.valor);
+  else if(investTableSort === 'inicio') arr.sort((a,b) => dateKey(b.dataInicio) - dateKey(a.dataInicio));
+  else if(investTableSort === 'fim') arr.sort((a,b) => dateKey(b.dataFim) - dateKey(a.dataFim));
+  else arr.sort((a,b) => (b.rentabilidadeAtual ?? -Infinity) - (a.rentabilidadeAtual ?? -Infinity));
+  return arr;
+}
+function setupInvestSortChips(){
+  const wrap = document.getElementById('investSortChips');
+  if(wrap.dataset.bound === '1') return;
+  wrap.querySelectorAll('.sort-chip').forEach(btn => {
+    btn.addEventListener('click', () => {
+      investTableSort = btn.dataset.sort;
+      wrap.querySelectorAll('.sort-chip').forEach(b => b.classList.toggle('active', b===btn));
+      renderInvestTab();
+    });
+  });
+  wrap.dataset.bound = '1';
+}
 // plugin custom: desenha linhas de chamada ligando cada fatia ao rótulo externo, sem sobrepor
+function wrapPieLabel(ctx, text, maxWidth){
+  const words = text.split(' ');
+  let lines = []; let current = '';
+  words.forEach(w => {
+    const test = current ? current+' '+w : w;
+    if(current && ctx.measureText(test).width > maxWidth){ lines.push(current); current = w; }
+    else current = test;
+  });
+  if(current) lines.push(current);
+  return lines;
+}
+
 const pieOutlabelsPlugin = {
   id: 'pieOutlabels',
   afterDraw(chart){
@@ -480,23 +528,32 @@ const pieOutlabelsPlugin = {
     if(!total) return;
     const arc0 = meta.data[0];
     const cx = arc0.x, cy = arc0.y, outerR = arc0.outerRadius;
+    const lineHeight = 13;
+
+    ctx.save();
+    ctx.font = '600 11px Inter, sans-serif';
 
     const items = meta.data.map((arc,i) => {
       const angle = (arc.startAngle + arc.endAngle) / 2;
-      return {
-        i, angle, value: dataset.data[i], label: chart.data.labels[i], color: dataset.backgroundColor[i],
-        x0: cx + Math.cos(angle)*outerR, y0: cy + Math.sin(angle)*outerR,
-        side: Math.cos(angle) >= 0 ? 'right' : 'left'
-      };
+      const pct = dataset.data[i]/total*100;
+      const x0 = cx + Math.cos(angle)*outerR, y0 = cy + Math.sin(angle)*outerR;
+      const side = Math.cos(angle) >= 0 ? 'right' : 'left';
+      const elbowX = cx + Math.cos(angle) * (outerR+16);
+      const maxWidth = side==='right' ? Math.max(50, chartArea.right-8-(elbowX+6)) : Math.max(50, (elbowX-6)-(chartArea.left+8));
+      const labelLines = wrapPieLabel(ctx, chart.data.labels[i], maxWidth);
+      const lines = [...labelLines, pct.toFixed(1)+'%'];
+      return { i, angle, value: dataset.data[i], color: dataset.backgroundColor[i], x0, y0, side, elbowX, maxWidth, lines };
     }).filter(it => it.value > 0);
+
+    const maxLines = Math.max(1, ...items.map(it => it.lines.length));
+    const margin = maxLines*lineHeight + 8;
 
     ['left','right'].forEach(side => {
       const group = items.filter(it => it.side === side).sort((a,b) => a.y0 - b.y0);
       const n = group.length;
       if(!n) return;
       let ys = group.map(it => it.y0);
-      const margin = 15;
-      for(let iter=0; iter<12; iter++){
+      for(let iter=0; iter<14; iter++){
         for(let k=1;k<n;k++){
           if(ys[k]-ys[k-1] < margin){
             const diff = (margin-(ys[k]-ys[k-1]))/2;
@@ -510,26 +567,23 @@ const pieOutlabelsPlugin = {
       group.forEach((it,idx) => { it.labelY = ys[idx]; });
     });
 
-    ctx.save();
-    ctx.font = '600 11px Inter, sans-serif';
     ctx.lineWidth = 1;
     items.forEach(it => {
-      const pct = (it.value/total*100);
-      const elbowX = cx + Math.cos(it.angle) * (outerR+16);
-      const textX = it.side==='right' ? chartArea.right-4 : chartArea.left+4;
-      const kneeX = it.side==='right' ? textX-6 : textX+6;
+      const textX = it.side==='right' ? it.elbowX+6 : it.elbowX-6;
       ctx.strokeStyle = 'rgba(233,228,216,0.45)';
       ctx.beginPath();
       ctx.moveTo(it.x0, it.y0);
-      ctx.lineTo(elbowX, it.labelY);
-      ctx.lineTo(kneeX, it.labelY);
+      ctx.lineTo(it.elbowX, it.labelY);
+      ctx.lineTo(textX, it.labelY);
       ctx.stroke();
       ctx.fillStyle = it.color;
       ctx.beginPath(); ctx.arc(it.x0, it.y0, 2.5, 0, Math.PI*2); ctx.fill();
+
       ctx.fillStyle = '#e9e4d8';
       ctx.textBaseline = 'middle';
       ctx.textAlign = it.side==='right' ? 'left' : 'right';
-      ctx.fillText(`${it.label} — ${pct.toFixed(1)}%`, textX, it.labelY);
+      const startY = it.labelY - (it.lines.length-1)*lineHeight/2;
+      it.lines.forEach((line, idx) => { ctx.fillText(line, textX, startY + idx*lineHeight); });
     });
     ctx.restore();
   }
@@ -649,7 +703,8 @@ function renderInvestTab(){
   }
 
   // tabela de dados brutos — só ativos, maior rentabilidade líquida atual primeiro
-  const tabelaRows = ativos.slice().sort((a,b) => (b.rentabilidadeAtual ?? -Infinity) - (a.rentabilidadeAtual ?? -Infinity));
+  setupInvestSortChips();
+  const tabelaRows = sortAtivosForTable(ativos);
   document.getElementById('investTableBody').innerHTML = tabelaRows.map(inv => `
     <tr>
       <td>${inv.nome || '(sem nome)'}</td>
@@ -662,6 +717,7 @@ function renderInvestTab(){
       <td>${inv.ondeEsta}</td>
       <td>${inv.liquidez}</td>
       <td>${inv.dataInicioRaw || '—'}</td>
+      <td>${inv.dataFimRaw || '—'}</td>
     </tr>`).join('');
 
   // FGC por instituição (onde está) — só investimentos marcados com "Tem FGC"
@@ -674,7 +730,7 @@ function renderInvestTab(){
       labels: ondeEntries.map(e=>e[0]),
       datasets: [
         { type:'bar', label:'Valor', data: ondeEntries.map(e=>e[1]),
-          backgroundColor: ondeEntries.map(e => e[1] > 250000 ? '#c1613f' : '#d4a94e'), borderRadius:5,
+          backgroundColor: ondeEntries.map(e => e[1] > 250000 ? '#e0483a' : '#c1613f'), borderRadius:5,
           datalabels: { display:true, color:'#e9e4d8', anchor:'end', align:'top', font:{size:11,weight:'600'}, formatter: v=>fmtBRLShort(v) } }
       ]
     },
@@ -1073,6 +1129,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.getElementById('tab-mes').classList.toggle('active', target==='mes');
     document.getElementById('tab-tempo').classList.toggle('active', target==='tempo');
     document.getElementById('tab-invest').classList.toggle('active', target==='invest');
+    document.getElementById('tab-apos').classList.toggle('active', target==='apos');
   });
 });
 
