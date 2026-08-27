@@ -139,14 +139,44 @@
   <div id="app">
 
     <div class="tabs">
-      <button class="tab-btn active" data-tab="mes">Gastos do mês</button>
+      <button class="tab-btn active" data-tab="metas">Metas de gastos</button>
+      <button class="tab-btn" data-tab="mes">Gastos do mês</button>
       <button class="tab-btn" data-tab="tempo">Evolução dos gastos</button>
       <button class="tab-btn" data-tab="invest">Investimentos</button>
       <button class="tab-btn" data-tab="apos">Aposentadoria</button>
     </div>
 
+    <!-- ===================== TAB: METAS ===================== -->
+    <div class="tab-panel active" id="tab-metas">
+
+      <div class="card">
+        <h2>Panorama das metas de gastos</h2>
+        <span class="hint">meta mensal total e como ela se distribui entre categorias e subcategorias</span>
+        <div class="stat-hero">
+          <span class="stat-hero-k">Meta mensal total</span>
+          <span class="stat-hero-v" id="metaMensalTotalHero">—</span>
+        </div>
+        <div class="chart-box tall"><canvas id="metaCategoriaChart"></canvas></div>
+      </div>
+
+      <div id="metaCategoryCards"></div>
+
+      <div class="card" style="margin-top:4px;">
+        <h2 style="font-size:14px; color:var(--ink-dim); font-family:'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:.06em;">Comparação com um mês específico</h2>
+        <span class="hint">o foco desta aba é a meta em si — use isto só como referência rápida do mês corrente</span>
+        <div class="row-controls">
+          <div class="field">
+            <label for="metaMonthSelect">Mês</label>
+            <select id="metaMonthSelect"></select>
+          </div>
+        </div>
+        <div id="metaComparisonCards"></div>
+      </div>
+
+    </div>
+
     <!-- ===================== TAB: MÊS ===================== -->
-    <div class="tab-panel active" id="tab-mes">
+    <div class="tab-panel" id="tab-mes">
 
       <div class="row-controls">
         <div class="field">
@@ -844,6 +874,76 @@ function renderInvestTab(){
   });
 }
 
+const metaCharts = {};
+function renderMetasTab(){
+  document.getElementById('metaMensalTotalHero').textContent = fmtBRL(globalMetaTotal);
+
+  const catEntries = Object.keys(catMap)
+    .filter(c => catMap[c].metaTotal > 0)
+    .map(c => [c, catMap[c].metaTotal])
+    .sort((a,b) => b[1]-a[1]);
+
+  if(metaCharts.categoriaChart) metaCharts.categoriaChart.destroy();
+  metaCharts.categoriaChart = new Chart(document.getElementById('metaCategoriaChart'), {
+    type: 'bar',
+    data: {
+      labels: catEntries.map(e=>e[0]),
+      datasets: [{ data: catEntries.map(e=>e[1]), backgroundColor: catEntries.map(([c])=>categoriaColor[c]||'#d4a94e'), borderRadius:5 }]
+    },
+    options: {
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      layout: { padding: { right: 110 } },
+      plugins: {
+        legend:{display:false}, tooltip:{ callbacks:{ label: ctx => fmtBRL(ctx.parsed.x) } },
+        datalabels: {
+          display:true, color:'#e9e4d8', anchor:'end', align:'right', font:{size:12,weight:'600'},
+          formatter: v => { const pct = globalMetaTotal ? (v/globalMetaTotal*100) : 0; return `${fmtBRLShort(v)}  (${pct.toFixed(1).replace('.',',')}%)`; }
+        }
+      },
+      scales: {
+        x: { ticks:{ color:'#93a598', font:{size:12}, callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } },
+        y: { ticks:{ color:'#e9e4d8', font:{size:13} }, grid:{ display:false } }
+      }
+    }
+  });
+
+  const container = document.getElementById('metaCategoryCards');
+  container.innerHTML = '';
+  catEntries.forEach(([cat, metaTotal]) => {
+    const info = catMap[cat];
+    const pctTotal = globalMetaTotal ? (metaTotal/globalMetaTotal*100) : 0;
+    const rows = info.subcategorias.slice().sort((a,b)=>b.meta-a.meta).map(s => {
+      const pctCat = metaTotal ? (s.meta/metaTotal*100) : 0;
+      return `<tr><td>${s.nome}</td><td class="val">${fmtBRL(s.meta)}</td><td class="val">${pctCat.toFixed(1).replace('.',',')}%</td></tr>`;
+    }).join('');
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.innerHTML = `
+      <div class="cat-card-head">
+        <span class="name">${cat}</span>
+        <span class="figs"><b>${fmtBRL(metaTotal)}</b> — ${pctTotal.toFixed(1).replace('.',',')}% do total geral</span>
+      </div>
+      <table class="compact" style="margin-top:10px;">
+        <thead><tr><th>Subcategoria</th><th style="text-align:right;">Meta</th><th style="text-align:right;">% da categoria</th></tr></thead>
+        <tbody>${rows}</tbody>
+      </table>`;
+    container.appendChild(card);
+  });
+
+  buildMetaMonthSelector();
+}
+
+function buildMetaMonthSelector(){
+  const sel = document.getElementById('metaMonthSelect');
+  sel.innerHTML = '';
+  monthsSorted.forEach(m => { const o=document.createElement('option'); o.value=m; o.textContent=monthLabel(m); sel.appendChild(o); });
+  const now = new Date();
+  const curKey = `${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
+  sel.value = monthsSorted.includes(curKey) ? curKey : monthsSorted[monthsSorted.length-1];
+  sel.onchange = () => renderCategoryCards(rows.filter(r=>r.mes===sel.value), 'metaComparisonCards');
+  renderCategoryCards(rows.filter(r=>r.mes===sel.value), 'metaComparisonCards');
+}
+
 async function loadData(){
   try{
     const [despesasRaw, catRaw, investRaw, selicRaw, ipcaRaw, totalRaw] = await Promise.all([
@@ -874,6 +974,7 @@ async function loadData(){
 
     renderMonth(monthsSorted[monthsSorted.length - 1]);
     renderTrend();
+    renderMetasTab();
     renderInvestTab();
 
     document.getElementById('metaRendInput').addEventListener('change', renderInvestTab);
@@ -1131,6 +1232,7 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
   btn.addEventListener('click', () => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b===btn));
     const target = btn.dataset.tab;
+    document.getElementById('tab-metas').classList.toggle('active', target==='metas');
     document.getElementById('tab-mes').classList.toggle('active', target==='mes');
     document.getElementById('tab-tempo').classList.toggle('active', target==='tempo');
     document.getElementById('tab-invest').classList.toggle('active', target==='invest');
@@ -1232,8 +1334,9 @@ function renderMonth(selectedMonth){
     </tr>`).join('');
 }
 
-function renderCategoryCards(monthRows){
-  const container = document.getElementById('categoryCards');
+function renderCategoryCards(monthRows, containerId){
+  containerId = containerId || 'categoryCards';
+  const container = document.getElementById(containerId);
   container.innerHTML = '';
 
   Object.keys(catMap).forEach(cat => {
@@ -1241,11 +1344,12 @@ function renderCategoryCards(monthRows){
     const catRows = monthRows.filter(r => r.categoria === cat);
     const catTotal = catRows.reduce((s,r)=>s+r.valor,0);
     const color = categoriaColor[cat] || '#d4a94e';
+    const chartKey = `${containerId}_${cat}`;
 
     const card = document.createElement('div');
     card.className = 'card';
-    const barId = `catbar_${cat.replace(/[^a-zA-Z0-9]/g,'')}`;
-    const miniId = `catmini_${cat.replace(/[^a-zA-Z0-9]/g,'')}`;
+    const barId = `catbar_${chartKey.replace(/[^a-zA-Z0-9]/g,'')}`;
+    const miniId = `catmini_${chartKey.replace(/[^a-zA-Z0-9]/g,'')}`;
     card.innerHTML = `
       <div class="cat-card-head">
         <span class="name">${cat}</span>
@@ -1263,7 +1367,7 @@ function renderCategoryCards(monthRows){
     catRows.forEach(r => { if(!bySub[r.subcategoria]) bySub[r.subcategoria] = {gasto:0, meta:r.subMeta}; bySub[r.subcategoria].gasto += r.valor; });
     const subNames = Object.keys(bySub);
 
-    if(categoryCharts[cat]) { categoryCharts[cat].bar.destroy(); categoryCharts[cat].mini.destroy(); }
+    if(categoryCharts[chartKey]) { categoryCharts[chartKey].bar.destroy(); categoryCharts[chartKey].mini.destroy(); }
 
     const bar = new Chart(document.getElementById(barId), {
       type: 'bar',
@@ -1306,7 +1410,7 @@ function renderCategoryCards(monthRows){
       }
     });
 
-    categoryCharts[cat] = { bar, mini };
+    categoryCharts[chartKey] = { bar, mini };
   });
 }
 
