@@ -159,19 +159,13 @@
         <div class="chart-box tall"><canvas id="metaCategoriaChart"></canvas></div>
       </div>
 
-      <div id="metaCategoryCards"></div>
-
-      <div class="card" style="margin-top:4px;">
-        <h2 style="font-size:14px; color:var(--ink-dim); font-family:'IBM Plex Mono',monospace; text-transform:uppercase; letter-spacing:.06em;">Comparação com um mês específico</h2>
-        <span class="hint">o foco desta aba é a meta em si — use isto só como referência rápida do mês corrente</span>
-        <div class="row-controls">
-          <div class="field">
-            <label for="metaMonthSelect">Mês</label>
-            <select id="metaMonthSelect"></select>
-          </div>
-        </div>
-        <div id="metaComparisonCards"></div>
+      <div class="card">
+        <h2>Meta por subcategoria</h2>
+        <span class="hint">agrupado por categoria (mesma cor da categoria correspondente no gráfico acima) · % em relação ao total geral</span>
+        <div class="chart-box" id="metaSubcategoriaBox" style="height:640px;"><canvas id="metaSubcategoriaChart"></canvas></div>
       </div>
+
+      <div id="metaCategoryCards"></div>
 
     </div>
 
@@ -907,14 +901,44 @@ function renderMetasTab(){
     }
   });
 
+  // gráfico de subcategorias: mesma ordem/cor da categoria-mãe, subcategorias ordenadas por valor dentro de cada uma
+  const subLabels = [], subValues = [], subColors = [];
+  catEntries.forEach(([cat]) => {
+    const color = categoriaColor[cat] || '#d4a94e';
+    catMap[cat].subcategorias.filter(s=>s.meta>0).slice().sort((a,b)=>b.meta-a.meta).forEach(s => {
+      subLabels.push(s.nome); subValues.push(s.meta); subColors.push(color);
+    });
+  });
+  document.getElementById('metaSubcategoriaBox').style.height = Math.max(360, subLabels.length*22) + 'px';
+  if(metaCharts.subcategoriaChart) metaCharts.subcategoriaChart.destroy();
+  metaCharts.subcategoriaChart = new Chart(document.getElementById('metaSubcategoriaChart'), {
+    type: 'bar',
+    data: { labels: subLabels, datasets: [{ data: subValues, backgroundColor: subColors, borderRadius:4 }] },
+    options: {
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      layout: { padding: { right: 110 } },
+      plugins: {
+        legend:{display:false}, tooltip:{ callbacks:{ label: ctx => fmtBRL(ctx.parsed.x) } },
+        datalabels: {
+          display:true, color:'#e9e4d8', anchor:'end', align:'right', font:{size:11,weight:'600'},
+          formatter: v => { const pct = globalMetaTotal ? (v/globalMetaTotal*100) : 0; return `${fmtBRLShort(v)}  (${pct.toFixed(1).replace('.',',')}%)`; }
+        }
+      },
+      scales: {
+        x: { ticks:{ color:'#93a598', font:{size:11}, callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } },
+        y: { ticks:{ color:'#e9e4d8', font:{size:11} }, grid:{ display:false } }
+      }
+    }
+  });
+
   const container = document.getElementById('metaCategoryCards');
   container.innerHTML = '';
   catEntries.forEach(([cat, metaTotal]) => {
     const info = catMap[cat];
     const pctTotal = globalMetaTotal ? (metaTotal/globalMetaTotal*100) : 0;
     const rows = info.subcategorias.slice().sort((a,b)=>b.meta-a.meta).map(s => {
-      const pctCat = metaTotal ? (s.meta/metaTotal*100) : 0;
-      return `<tr><td>${s.nome}</td><td class="val">${fmtBRL(s.meta)}</td><td class="val">${pctCat.toFixed(1).replace('.',',')}%</td></tr>`;
+      const pctDoTotal = globalMetaTotal ? (s.meta/globalMetaTotal*100) : 0;
+      return `<tr><td>${s.nome}</td><td class="val">${fmtBRL(s.meta)}</td><td class="val">${pctDoTotal.toFixed(1).replace('.',',')}%</td></tr>`;
     }).join('');
     const card = document.createElement('div');
     card.className = 'card';
@@ -924,24 +948,11 @@ function renderMetasTab(){
         <span class="figs"><b>${fmtBRL(metaTotal)}</b> — ${pctTotal.toFixed(1).replace('.',',')}% do total geral</span>
       </div>
       <table class="compact" style="margin-top:10px;">
-        <thead><tr><th>Subcategoria</th><th style="text-align:right;">Meta</th><th style="text-align:right;">% da categoria</th></tr></thead>
+        <thead><tr><th>Subcategoria</th><th style="text-align:right;">Meta</th><th style="text-align:right;">% do total geral</th></tr></thead>
         <tbody>${rows}</tbody>
       </table>`;
     container.appendChild(card);
   });
-
-  buildMetaMonthSelector();
-}
-
-function buildMetaMonthSelector(){
-  const sel = document.getElementById('metaMonthSelect');
-  sel.innerHTML = '';
-  monthsSorted.forEach(m => { const o=document.createElement('option'); o.value=m; o.textContent=monthLabel(m); sel.appendChild(o); });
-  const now = new Date();
-  const curKey = `${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
-  sel.value = monthsSorted.includes(curKey) ? curKey : monthsSorted[monthsSorted.length-1];
-  sel.onchange = () => renderCategoryCards(rows.filter(r=>r.mes===sel.value), 'metaComparisonCards');
-  renderCategoryCards(rows.filter(r=>r.mes===sel.value), 'metaComparisonCards');
 }
 
 async function loadData(){
