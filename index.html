@@ -166,7 +166,17 @@
         <div class="chart-box" id="metaSubcategoriaBox" style="height:640px;"><canvas id="metaSubcategoriaChart"></canvas></div>
       </div>
 
-      <div id="metaCategoryCards"></div>
+      <div class="card">
+        <h2>Gasto real por subcategoria</h2>
+        <div class="row-controls" style="margin-bottom:6px;">
+          <div class="field">
+            <label for="metaRealMonthSelect">Mês</label>
+            <select id="metaRealMonthSelect"></select>
+          </div>
+        </div>
+        <span class="hint">mesma ordem e cores do gráfico de metas acima · % em relação ao total gasto no mês</span>
+        <div class="chart-box" id="metaRealSubcategoriaBox" style="height:640px;"><canvas id="metaRealSubcategoriaChart"></canvas></div>
+      </div>
 
     </div>
 
@@ -940,27 +950,53 @@ function renderMetasTab(){
     }
   });
 
-  const container = document.getElementById('metaCategoryCards');
-  container.innerHTML = '';
-  catEntries.forEach(([cat, metaTotal]) => {
-    const info = catMap[cat];
-    const pctTotal = globalMetaTotal ? (metaTotal/globalMetaTotal*100) : 0;
-    const rows = info.subcategorias.slice().sort((a,b)=>b.meta-a.meta).map(s => {
-      const pctDoTotal = globalMetaTotal ? (s.meta/globalMetaTotal*100) : 0;
-      return `<tr><td>${s.nome}</td><td class="val">${fmtBRL(s.meta)}</td><td class="val">${pctDoTotal.toFixed(1).replace('.',',')}%</td></tr>`;
-    }).join('');
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.innerHTML = `
-      <div class="cat-card-head">
-        <span class="name">${cat}</span>
-        <span class="figs"><b>${fmtBRL(metaTotal)}</b> — ${pctTotal.toFixed(1).replace('.',',')}% do total geral</span>
-      </div>
-      <table class="compact" style="margin-top:10px;">
-        <thead><tr><th>Subcategoria</th><th style="text-align:right;">Meta</th><th style="text-align:right;">% do total geral</th></tr></thead>
-        <tbody>${rows}</tbody>
-      </table>`;
-    container.appendChild(card);
+  buildMetaRealMonthSelector(catEntries);
+}
+
+function buildMetaRealMonthSelector(catEntries){
+  const sel = document.getElementById('metaRealMonthSelect');
+  sel.innerHTML = '';
+  monthsSorted.forEach(m => { const o=document.createElement('option'); o.value=m; o.textContent=monthLabel(m); sel.appendChild(o); });
+  const now = new Date();
+  const curKey = `${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
+  sel.value = monthsSorted.includes(curKey) ? curKey : monthsSorted[monthsSorted.length-1];
+  sel.onchange = () => renderMetaRealChart(catEntries, sel.value);
+  renderMetaRealChart(catEntries, sel.value);
+}
+
+function renderMetaRealChart(catEntries, mes){
+  const monthRows = rows.filter(r => r.mes === mes);
+  const totalMes = monthRows.reduce((s,r)=>s+r.valor,0);
+
+  const subLabels = [], subValues = [], subColors = [];
+  catEntries.forEach(([cat]) => {
+    const color = categoriaColor[cat] || '#d4a94e';
+    catMap[cat].subcategorias.filter(s=>s.meta>0).slice().sort((a,b)=>b.meta-a.meta).forEach(s => {
+      const gasto = monthRows.filter(r => r.categoria === cat && r.subcategoria === s.nome).reduce((sum,r)=>sum+r.valor,0);
+      subLabels.push(s.nome); subValues.push(gasto); subColors.push(color);
+    });
+  });
+
+  document.getElementById('metaRealSubcategoriaBox').style.height = Math.max(360, subLabels.length*22) + 'px';
+  if(metaCharts.realSubcategoriaChart) metaCharts.realSubcategoriaChart.destroy();
+  metaCharts.realSubcategoriaChart = new Chart(document.getElementById('metaRealSubcategoriaChart'), {
+    type: 'bar',
+    data: { labels: subLabels, datasets: [{ data: subValues, backgroundColor: subColors, borderRadius:4 }] },
+    options: {
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      layout: { padding: { right: 110 } },
+      plugins: {
+        legend:{display:false}, tooltip:{ callbacks:{ label: ctx => fmtBRL(ctx.parsed.x) } },
+        datalabels: {
+          display:true, color:'#e9e4d8', anchor:'end', align:'right', font:{size:11,weight:'600'},
+          formatter: v => { const pct = totalMes ? (v/totalMes*100) : 0; return `${fmtBRLShort(v)}  (${pct.toFixed(1).replace('.',',')}%)`; }
+        }
+      },
+      scales: {
+        x: { ticks:{ color:'#93a598', font:{size:11}, callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } },
+        y: { ticks:{ color:'#e9e4d8', font:{size:11} }, grid:{ display:false } }
+      }
+    }
   });
 }
 
