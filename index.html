@@ -174,8 +174,36 @@
             <select id="metaRealMonthSelect"></select>
           </div>
         </div>
-        <span class="hint">mesma ordem e cores do gráfico de metas acima · % em relação ao total gasto no mês</span>
+        <div class="stat-line" style="margin:6px 0 14px;">
+          <span class="stat-line-k">Total gasto no mês</span>
+          <span class="stat-line-v" id="metaRealTotalMes">—</span>
+        </div>
+        <span class="hint">mesma ordem e cores do gráfico de metas acima (inclusive subcategorias com meta zero) · % em relação ao total gasto no mês</span>
         <div class="chart-box" id="metaRealSubcategoriaBox" style="height:640px;"><canvas id="metaRealSubcategoriaChart"></canvas></div>
+      </div>
+
+      <div class="card">
+        <h2>Maiores despesas do mês</h2>
+        <span class="hint">top 10 lançamentos</span>
+        <table>
+          <thead><tr><th>Despesa</th><th>Categoria › Subcategoria</th><th>Data</th><th style="text-align:right;">Valor</th></tr></thead>
+          <tbody id="metaTopTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Todos os gastos de uma subcategoria</h2>
+        <div class="row-controls" style="margin-bottom:6px;">
+          <div class="field">
+            <label for="metaSubExpenseSelect">Subcategoria</label>
+            <select id="metaSubExpenseSelect"></select>
+          </div>
+        </div>
+        <span class="hint">lista completa de lançamentos da subcategoria escolhida, no mês selecionado acima</span>
+        <table>
+          <thead><tr><th>Despesa</th><th>Data</th><th style="text-align:right;">Valor</th></tr></thead>
+          <tbody id="metaSubExpenseBody"></tbody>
+        </table>
       </div>
 
     </div>
@@ -217,6 +245,21 @@
         <table>
           <thead><tr><th>Despesa</th><th>Categoria › Subcategoria</th><th>Data</th><th style="text-align:right;">Valor</th></tr></thead>
           <tbody id="topTableBody"></tbody>
+        </table>
+      </div>
+
+      <div class="card">
+        <h2>Todos os gastos de uma subcategoria</h2>
+        <div class="row-controls" style="margin-bottom:6px;">
+          <div class="field">
+            <label for="mesSubExpenseSelect">Subcategoria</label>
+            <select id="mesSubExpenseSelect"></select>
+          </div>
+        </div>
+        <span class="hint">lista completa de lançamentos da subcategoria escolhida, no mês selecionado acima</span>
+        <table>
+          <thead><tr><th>Despesa</th><th>Data</th><th style="text-align:right;">Valor</th></tr></thead>
+          <tbody id="mesSubExpenseBody"></tbody>
         </table>
       </div>
 
@@ -1000,6 +1043,74 @@ function renderMetaRealChart(catEntries, mes){
   });
 }
 
+let metaCatEntriesGlobal = [];
+
+function getDefaultMonth(){
+  const now = new Date();
+  const curKey = `${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
+  return monthsSorted.includes(curKey) ? curKey : monthsSorted[monthsSorted.length-1];
+}
+
+// centraliza a troca de mês pra manter os dois seletores (Gastos do mês e Metas de gastos) sincronizados
+function setCurrentMonth(mes){
+  const monthSel = document.getElementById('monthSelect');
+  const metaSel = document.getElementById('metaRealMonthSelect');
+  if(monthSel && monthSel.value !== mes) monthSel.value = mes;
+  if(metaSel && metaSel.value !== mes) metaSel.value = mes;
+  renderMonth(mes);
+  renderMetaRealChart(metaCatEntriesGlobal, mes);
+}
+
+function buildMetaRealMonthSelector(catEntries){
+  metaCatEntriesGlobal = catEntries;
+  const sel = document.getElementById('metaRealMonthSelect');
+  sel.innerHTML = '';
+  monthsSorted.forEach(m => { const o=document.createElement('option'); o.value=m; o.textContent=monthLabel(m); sel.appendChild(o); });
+  sel.value = getDefaultMonth();
+  sel.onchange = () => setCurrentMonth(sel.value);
+  renderMetaRealChart(catEntries, sel.value);
+}
+
+function renderMetaRealChart(catEntries, mes){
+  const monthRows = rows.filter(r => r.mes === mes);
+  const totalMes = monthRows.reduce((s,r)=>s+r.valor,0);
+  document.getElementById('metaRealTotalMes').textContent = fmtBRL(totalMes);
+
+  const subLabels = [], subValues = [], subColors = [];
+  catEntries.forEach(([cat]) => {
+    const color = categoriaColor[cat] || '#d4a94e';
+    catMap[cat].subcategorias.slice().sort((a,b)=>b.meta-a.meta).forEach(s => {
+      const gasto = monthRows.filter(r => r.categoria === cat && r.subcategoria === s.nome).reduce((sum,r)=>sum+r.valor,0);
+      subLabels.push(s.nome); subValues.push(gasto); subColors.push(color);
+    });
+  });
+
+  document.getElementById('metaRealSubcategoriaBox').style.height = Math.max(360, subLabels.length*22) + 'px';
+  if(metaCharts.realSubcategoriaChart) metaCharts.realSubcategoriaChart.destroy();
+  metaCharts.realSubcategoriaChart = new Chart(document.getElementById('metaRealSubcategoriaChart'), {
+    type: 'bar',
+    data: { labels: subLabels, datasets: [{ data: subValues, backgroundColor: subColors, borderRadius:4 }] },
+    options: {
+      indexAxis:'y', responsive:true, maintainAspectRatio:false,
+      layout: { padding: { right: 110 } },
+      plugins: {
+        legend:{display:false}, tooltip:{ callbacks:{ label: ctx => fmtBRL(ctx.parsed.x) } },
+        datalabels: {
+          display:true, color:'#e9e4d8', anchor:'end', align:'right', font:{size:11,weight:'600'},
+          formatter: v => { const pct = totalMes ? (v/totalMes*100) : 0; return `${fmtBRLShort(v)}  (${pct.toFixed(1).replace('.',',')}%)`; }
+        }
+      },
+      scales: {
+        x: { ticks:{ color:'#93a598', font:{size:11}, callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } },
+        y: { ticks:{ color:'#e9e4d8', font:{size:11} }, grid:{ display:false } }
+      }
+    }
+  });
+
+  renderTopExpensesTable(monthRows, 'metaTopTableBody');
+  renderSubExpenseTable(monthRows, document.getElementById('metaSubExpenseSelect').value, 'metaSubExpenseBody');
+}
+
 async function loadData(){
   try{
     const [despesasRaw, catRaw, investRaw, selicRaw, ipcaRaw, totalRaw] = await Promise.all([
@@ -1024,11 +1135,20 @@ async function loadData(){
     buildYearChips();
     buildCategoryDetailSelector();
 
+    populateSubExpenseSelect('mesSubExpenseSelect');
+    document.getElementById('mesSubExpenseSelect').addEventListener('change', () => {
+      renderSubExpenseTable(rows.filter(r=>r.mes===document.getElementById('monthSelect').value), document.getElementById('mesSubExpenseSelect').value, 'mesSubExpenseBody');
+    });
+    populateSubExpenseSelect('metaSubExpenseSelect');
+    document.getElementById('metaSubExpenseSelect').addEventListener('change', () => {
+      renderSubExpenseTable(rows.filter(r=>r.mes===document.getElementById('metaRealMonthSelect').value), document.getElementById('metaSubExpenseSelect').value, 'metaSubExpenseBody');
+    });
+
     document.getElementById('status').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     document.getElementById('lastUpdated').textContent = 'Carregado em ' + new Date().toLocaleString('pt-BR');
 
-    renderMonth(monthsSorted[monthsSorted.length - 1]);
+    renderMonth(getDefaultMonth());
     renderTrend();
     renderMetasTab();
     renderInvestTab();
@@ -1312,8 +1432,8 @@ function buildMonthSelector(){
   monthsSorted.forEach(m => {
     const opt = document.createElement('option'); opt.value = m; opt.textContent = monthLabel(m); sel.appendChild(opt);
   });
-  sel.value = monthsSorted[monthsSorted.length-1];
-  sel.addEventListener('change', () => renderMonth(sel.value));
+  sel.value = getDefaultMonth();
+  sel.addEventListener('change', () => setCurrentMonth(sel.value));
 }
 
 let totalVsMetaChart;
@@ -1388,14 +1508,44 @@ function renderMonth(selectedMonth){
 
   renderCategoryCards(monthRows);
 
-  const top10 = monthRows.slice().sort((a,b)=>b.valor-a.valor).slice(0,10);
-  document.getElementById('topTableBody').innerHTML = top10.map(r => `
+  renderTopExpensesTable(monthRows, 'topTableBody');
+  renderSubExpenseTable(monthRows, document.getElementById('mesSubExpenseSelect').value, 'mesSubExpenseBody');
+}
+
+function renderTopExpensesTable(monthRows, tbodyId, limit){
+  limit = limit || 10;
+  const top = monthRows.slice().sort((a,b)=>b.valor-a.valor).slice(0, limit);
+  document.getElementById(tbodyId).innerHTML = top.map(r => `
     <tr>
       <td>${r.despesa || '(sem descrição)'}</td>
       <td>${r.categoria} › ${r.subcategoria}</td>
       <td>${r.data}</td>
       <td class="val">${fmtBRL(r.valor)}</td>
-    </tr>`).join('');
+    </tr>`).join('') || `<tr><td colspan="4" style="text-align:center;color:var(--ink-dim);">Nenhum gasto neste mês.</td></tr>`;
+}
+
+function populateSubExpenseSelect(selectId){
+  const sel = document.getElementById(selectId);
+  if(sel.dataset.built === '1') return;
+  sel.innerHTML = '';
+  Object.keys(catMap).forEach(cat => {
+    const group = document.createElement('optgroup');
+    group.label = cat;
+    catMap[cat].subcategorias.forEach(s => {
+      const o = document.createElement('option'); o.value = s.nome; o.textContent = s.nome; group.appendChild(o);
+    });
+    sel.appendChild(group);
+  });
+  sel.dataset.built = '1';
+}
+
+function renderSubExpenseTable(monthRows, subNome, tbodyId){
+  const filtered = monthRows.filter(r => r.subcategoria === subNome).slice().sort((a,b)=>b.valor-a.valor);
+  const total = filtered.reduce((s,r)=>s+r.valor,0);
+  document.getElementById(tbodyId).innerHTML = filtered.length
+    ? filtered.map(r => `<tr><td>${r.despesa || '(sem descrição)'}</td><td>${r.data}</td><td class="val">${fmtBRL(r.valor)}</td></tr>`).join('')
+      + `<tr><td colspan="2" style="font-weight:600;">Total</td><td class="val" style="font-weight:600;">${fmtBRL(total)}</td></tr>`
+    : `<tr><td colspan="3" style="text-align:center;color:var(--ink-dim);">Nenhum gasto nessa subcategoria neste mês.</td></tr>`;
 }
 
 function renderCategoryCards(monthRows, containerId){
