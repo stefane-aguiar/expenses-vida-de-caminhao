@@ -157,6 +157,7 @@
           <span class="stat-hero-v" id="metaMensalTotalHero">—</span>
         </div>
         <div class="chart-box tall"><canvas id="metaCategoriaChart"></canvas></div>
+        <div class="hint" id="despesasAnuaisLine" style="margin-top:12px;"></div>
       </div>
 
       <div class="card">
@@ -415,6 +416,7 @@ let catMap = {};          // categoria -> { subcategorias:[{nome,meta}], metaTot
 let subcatIndex = {};     // normalized subcat -> {categoria, nome, meta}
 let categoriaColor = {};  // categoria -> color
 let globalMetaTotal = 0;
+let despesasAnuaisImportantes = { titulo: '', itens: [] };
 
 let investimentos = [];      // {cpf, objetivo, status, nome, valor, tipoRendimento, rendContratado, ir, tipo, temFGC, corretora, ondeEsta, dataInicio, dataFim}
 let selicHistorico = [];     // [{start:Date, end:Date|null, taxa:number}] sorted by start asc
@@ -872,6 +874,13 @@ const metaCharts = {};
 function renderMetasTab(){
   document.getElementById('metaMensalTotalHero').textContent = fmtBRL(globalMetaTotal);
 
+  const anuaisEl = document.getElementById('despesasAnuaisLine');
+  if(despesasAnuaisImportantes.itens.length){
+    anuaisEl.textContent = `${despesasAnuaisImportantes.titulo}: ${despesasAnuaisImportantes.itens.join(', ')}`;
+  } else {
+    anuaisEl.textContent = '';
+  }
+
   const catEntries = Object.keys(catMap)
     .filter(c => catMap[c].metaTotal > 0)
     .map(c => [c, catMap[c].metaTotal])
@@ -1003,6 +1012,7 @@ function showError(msg){
 
 function buildCategorias(data){
   // header row 0: Categoria | Sub-categoria | Meta | TOTAL Meta | Meta % | ...
+  const header = data[0] || [];
   const body = data.slice(1);
   catMap = {};
   body.forEach(r => {
@@ -1017,6 +1027,13 @@ function buildCategorias(data){
   });
   Object.keys(catMap).forEach((cat, i) => { categoriaColor[cat] = COLORS[i % COLORS.length]; });
   globalMetaTotal = Object.values(catMap).reduce((s,c) => s + c.metaTotal, 0);
+
+  // coluna G em diante: "Despesas anuais importantes" (título na linha 1, itens da linha 2 pra baixo)
+  const iAnuais = header.findIndex(h => (h||'').includes('Despesas anuais'));
+  if(iAnuais !== -1){
+    despesasAnuaisImportantes.titulo = header[iAnuais].trim();
+    despesasAnuaisImportantes.itens = body.map(r => (r[iAnuais]||'').trim()).filter(Boolean);
+  }
 }
 
 function buildExpenses(data){
