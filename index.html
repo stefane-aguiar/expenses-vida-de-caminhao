@@ -109,6 +109,15 @@
   .stat-hero{ text-align:center; margin:6px 0 14px; }
   .stat-hero-k{ font-family:'IBM Plex Mono',monospace; font-size:12px; text-transform:uppercase; letter-spacing:.1em; color:var(--ink-dim); display:block; margin-bottom:6px; }
   .stat-hero-v{ font-family:'Fraunces',serif; font-size:clamp(32px,5vw,46px); font-weight:700; color:var(--gold); }
+  .section-divider{
+    display:flex; align-items:center; gap:18px; margin:36px 0 26px;
+  }
+  .section-divider::before, .section-divider::after{
+    content:""; flex:1; height:1px; background:var(--line);
+  }
+  .section-divider span{
+    font-family:'Fraunces',serif; font-size:22px; font-weight:600; color:var(--paper); white-space:nowrap;
+  }
   .stat-mid{ text-align:center; margin:0 0 14px; }
   .stat-mid-k{ font-family:'IBM Plex Mono',monospace; font-size:11.5px; text-transform:uppercase; letter-spacing:.08em; color:var(--ink-dim); display:block; margin-bottom:4px; }
   .stat-mid-v{ font-family:'Fraunces',serif; font-size:26px; font-weight:600; color:var(--sage); }
@@ -164,6 +173,10 @@
         <h2>Meta por subcategoria</h2>
         <span class="hint">agrupado por categoria (mesma cor da categoria correspondente no gráfico acima) · % em relação ao total geral</span>
         <div class="chart-box" id="metaSubcategoriaBox" style="height:640px;"><canvas id="metaSubcategoriaChart"></canvas></div>
+      </div>
+
+      <div class="section-divider">
+        <span>Comparação da meta com mês específico</span>
       </div>
 
       <div class="card">
@@ -1528,14 +1541,17 @@ function populateSubExpenseSelect(selectId){
   const sel = document.getElementById(selectId);
   if(sel.dataset.built === '1') return;
   sel.innerHTML = '';
+  let defaultOption = null;
   Object.keys(catMap).forEach(cat => {
     const group = document.createElement('optgroup');
     group.label = cat;
     catMap[cat].subcategorias.forEach(s => {
       const o = document.createElement('option'); o.value = s.nome; o.textContent = s.nome; group.appendChild(o);
+      if(s.nome.includes('Rolê de gostosas')) defaultOption = s.nome;
     });
     sel.appendChild(group);
   });
+  if(defaultOption) sel.value = defaultOption;
   sel.dataset.built = '1';
 }
 
