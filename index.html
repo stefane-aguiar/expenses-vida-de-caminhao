@@ -148,15 +148,18 @@
   <div id="app">
 
     <div class="tabs">
-      <button class="tab-btn active" data-tab="metas">Metas de gastos</button>
-      <button class="tab-btn" data-tab="mes">Gastos do mês</button>
+      <button class="tab-btn active" data-tab="metas">Metas e gastos do mês</button>
       <button class="tab-btn" data-tab="tempo">Evolução dos gastos</button>
       <button class="tab-btn" data-tab="invest">Investimentos</button>
       <button class="tab-btn" data-tab="apos">Aposentadoria</button>
     </div>
 
-    <!-- ===================== TAB: METAS ===================== -->
+    <!-- ===================== TAB: METAS E GASTOS DO MÊS ===================== -->
     <div class="tab-panel active" id="tab-metas">
+
+      <div class="section-divider">
+        <span>Metas de gastos</span>
+      </div>
 
       <div class="card">
         <h2>Panorama das metas de gastos</h2>
@@ -179,56 +182,21 @@
         <span>Comparação da meta com mês específico</span>
       </div>
 
+      <div class="row-controls">
+        <div class="field">
+          <label for="monthSelect">Mês</label>
+          <select id="monthSelect"></select>
+        </div>
+      </div>
+
       <div class="card">
         <h2>Gasto real por subcategoria</h2>
-        <div class="row-controls" style="margin-bottom:6px;">
-          <div class="field">
-            <label for="metaRealMonthSelect">Mês</label>
-            <select id="metaRealMonthSelect"></select>
-          </div>
-        </div>
         <div class="stat-line" style="margin:6px 0 14px;">
           <span class="stat-line-k">Total gasto no mês</span>
           <span class="stat-line-v" id="metaRealTotalMes">—</span>
         </div>
         <span class="hint">mesma ordem e cores do gráfico de metas acima (inclusive subcategorias com meta zero) · % em relação ao total gasto no mês</span>
         <div class="chart-box" id="metaRealSubcategoriaBox" style="height:640px;"><canvas id="metaRealSubcategoriaChart"></canvas></div>
-      </div>
-
-      <div class="card">
-        <h2>Maiores despesas do mês</h2>
-        <span class="hint">top 10 lançamentos</span>
-        <table>
-          <thead><tr><th>Despesa</th><th>Categoria › Subcategoria</th><th>Data</th><th style="text-align:right;">Valor</th></tr></thead>
-          <tbody id="metaTopTableBody"></tbody>
-        </table>
-      </div>
-
-      <div class="card">
-        <h2>Todos os gastos de uma subcategoria</h2>
-        <div class="row-controls" style="margin-bottom:6px;">
-          <div class="field">
-            <label for="metaSubExpenseSelect">Subcategoria</label>
-            <select id="metaSubExpenseSelect"></select>
-          </div>
-        </div>
-        <span class="hint">lista completa de lançamentos da subcategoria escolhida, no mês selecionado acima</span>
-        <table>
-          <thead><tr><th>Despesa</th><th>Data</th><th style="text-align:right;">Valor</th></tr></thead>
-          <tbody id="metaSubExpenseBody"></tbody>
-        </table>
-      </div>
-
-    </div>
-
-    <!-- ===================== TAB: MÊS ===================== -->
-    <div class="tab-panel" id="tab-mes">
-
-      <div class="row-controls">
-        <div class="field">
-          <label for="monthSelect">Mês</label>
-          <select id="monthSelect"></select>
-        </div>
       </div>
 
       <div class="receipt">
@@ -250,11 +218,9 @@
         <div class="chart-box small"><canvas id="totalVsMetaChart"></canvas></div>
       </div>
 
-      <div id="categoryCards"></div>
-
       <div class="card">
         <h2>Maiores despesas do mês</h2>
-        <span class="hint">top 10 lançamentos</span>
+        <span class="hint">top 5 lançamentos</span>
         <table>
           <thead><tr><th>Despesa</th><th>Categoria › Subcategoria</th><th>Data</th><th style="text-align:right;">Valor</th></tr></thead>
           <tbody id="topTableBody"></tbody>
@@ -275,6 +241,8 @@
           <tbody id="mesSubExpenseBody"></tbody>
         </table>
       </div>
+
+      <div id="categoryCards"></div>
 
     </div>
 
@@ -1006,54 +974,7 @@ function renderMetasTab(){
     }
   });
 
-  buildMetaRealMonthSelector(catEntries);
-}
-
-function buildMetaRealMonthSelector(catEntries){
-  const sel = document.getElementById('metaRealMonthSelect');
-  sel.innerHTML = '';
-  monthsSorted.forEach(m => { const o=document.createElement('option'); o.value=m; o.textContent=monthLabel(m); sel.appendChild(o); });
-  const now = new Date();
-  const curKey = `${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
-  sel.value = monthsSorted.includes(curKey) ? curKey : monthsSorted[monthsSorted.length-1];
-  sel.onchange = () => renderMetaRealChart(catEntries, sel.value);
-  renderMetaRealChart(catEntries, sel.value);
-}
-
-function renderMetaRealChart(catEntries, mes){
-  const monthRows = rows.filter(r => r.mes === mes);
-  const totalMes = monthRows.reduce((s,r)=>s+r.valor,0);
-
-  const subLabels = [], subValues = [], subColors = [];
-  catEntries.forEach(([cat]) => {
-    const color = categoriaColor[cat] || '#d4a94e';
-    catMap[cat].subcategorias.filter(s=>s.meta>0).slice().sort((a,b)=>b.meta-a.meta).forEach(s => {
-      const gasto = monthRows.filter(r => r.categoria === cat && r.subcategoria === s.nome).reduce((sum,r)=>sum+r.valor,0);
-      subLabels.push(s.nome); subValues.push(gasto); subColors.push(color);
-    });
-  });
-
-  document.getElementById('metaRealSubcategoriaBox').style.height = Math.max(360, subLabels.length*22) + 'px';
-  if(metaCharts.realSubcategoriaChart) metaCharts.realSubcategoriaChart.destroy();
-  metaCharts.realSubcategoriaChart = new Chart(document.getElementById('metaRealSubcategoriaChart'), {
-    type: 'bar',
-    data: { labels: subLabels, datasets: [{ data: subValues, backgroundColor: subColors, borderRadius:4 }] },
-    options: {
-      indexAxis:'y', responsive:true, maintainAspectRatio:false,
-      layout: { padding: { right: 110 } },
-      plugins: {
-        legend:{display:false}, tooltip:{ callbacks:{ label: ctx => fmtBRL(ctx.parsed.x) } },
-        datalabels: {
-          display:true, color:'#e9e4d8', anchor:'end', align:'right', font:{size:11,weight:'600'},
-          formatter: v => { const pct = totalMes ? (v/totalMes*100) : 0; return `${fmtBRLShort(v)}  (${pct.toFixed(1).replace('.',',')}%)`; }
-        }
-      },
-      scales: {
-        x: { ticks:{ color:'#93a598', font:{size:11}, callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } },
-        y: { ticks:{ color:'#e9e4d8', font:{size:11} }, grid:{ display:false } }
-      }
-    }
-  });
+  metaCatEntriesGlobal = catEntries;
 }
 
 let metaCatEntriesGlobal = [];
@@ -1064,24 +985,10 @@ function getDefaultMonth(){
   return monthsSorted.includes(curKey) ? curKey : monthsSorted[monthsSorted.length-1];
 }
 
-// centraliza a troca de mês pra manter os dois seletores (Gastos do mês e Metas de gastos) sincronizados
-function setCurrentMonth(mes){
-  const monthSel = document.getElementById('monthSelect');
-  const metaSel = document.getElementById('metaRealMonthSelect');
-  if(monthSel && monthSel.value !== mes) monthSel.value = mes;
-  if(metaSel && metaSel.value !== mes) metaSel.value = mes;
+// única fonte de verdade pro mês selecionado — atualiza tanto o resumo/tabelas quanto o gráfico de gasto real
+function updateMonth(mes){
   renderMonth(mes);
   renderMetaRealChart(metaCatEntriesGlobal, mes);
-}
-
-function buildMetaRealMonthSelector(catEntries){
-  metaCatEntriesGlobal = catEntries;
-  const sel = document.getElementById('metaRealMonthSelect');
-  sel.innerHTML = '';
-  monthsSorted.forEach(m => { const o=document.createElement('option'); o.value=m; o.textContent=monthLabel(m); sel.appendChild(o); });
-  sel.value = getDefaultMonth();
-  sel.onchange = () => setCurrentMonth(sel.value);
-  renderMetaRealChart(catEntries, sel.value);
 }
 
 function renderMetaRealChart(catEntries, mes){
@@ -1119,9 +1026,6 @@ function renderMetaRealChart(catEntries, mes){
       }
     }
   });
-
-  renderTopExpensesTable(monthRows, 'metaTopTableBody');
-  renderSubExpenseTable(monthRows, document.getElementById('metaSubExpenseSelect').value, 'metaSubExpenseBody');
 }
 
 async function loadData(){
@@ -1152,18 +1056,14 @@ async function loadData(){
     document.getElementById('mesSubExpenseSelect').addEventListener('change', () => {
       renderSubExpenseTable(rows.filter(r=>r.mes===document.getElementById('monthSelect').value), document.getElementById('mesSubExpenseSelect').value, 'mesSubExpenseBody');
     });
-    populateSubExpenseSelect('metaSubExpenseSelect');
-    document.getElementById('metaSubExpenseSelect').addEventListener('change', () => {
-      renderSubExpenseTable(rows.filter(r=>r.mes===document.getElementById('metaRealMonthSelect').value), document.getElementById('metaSubExpenseSelect').value, 'metaSubExpenseBody');
-    });
 
     document.getElementById('status').style.display = 'none';
     document.getElementById('app').style.display = 'block';
     document.getElementById('lastUpdated').textContent = 'Carregado em ' + new Date().toLocaleString('pt-BR');
 
-    renderMonth(getDefaultMonth());
-    renderTrend();
     renderMetasTab();
+    updateMonth(getDefaultMonth());
+    renderTrend();
     renderInvestTab();
 
     document.getElementById('metaRendInput').addEventListener('change', renderInvestTab);
@@ -1430,7 +1330,6 @@ document.querySelectorAll('.tab-btn').forEach(btn => {
     document.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b===btn));
     const target = btn.dataset.tab;
     document.getElementById('tab-metas').classList.toggle('active', target==='metas');
-    document.getElementById('tab-mes').classList.toggle('active', target==='mes');
     document.getElementById('tab-tempo').classList.toggle('active', target==='tempo');
     document.getElementById('tab-invest').classList.toggle('active', target==='invest');
     document.getElementById('tab-apos').classList.toggle('active', target==='apos');
@@ -1446,7 +1345,7 @@ function buildMonthSelector(){
     const opt = document.createElement('option'); opt.value = m; opt.textContent = monthLabel(m); sel.appendChild(opt);
   });
   sel.value = getDefaultMonth();
-  sel.addEventListener('change', () => setCurrentMonth(sel.value));
+  sel.addEventListener('change', () => updateMonth(sel.value));
 }
 
 let totalVsMetaChart;
@@ -1521,7 +1420,7 @@ function renderMonth(selectedMonth){
 
   renderCategoryCards(monthRows);
 
-  renderTopExpensesTable(monthRows, 'topTableBody');
+  renderTopExpensesTable(monthRows, 'topTableBody', 5);
   renderSubExpenseTable(monthRows, document.getElementById('mesSubExpenseSelect').value, 'mesSubExpenseBody');
 }
 
