@@ -178,6 +178,14 @@
         <div class="chart-box" id="metaSubcategoriaBox" style="height:640px;"><canvas id="metaSubcategoriaChart"></canvas></div>
       </div>
 
+      <div class="receipt">
+        <div class="receipt-title">
+          <span>Entradas de dinheiro</span>
+          <span id="entradasCount">—</span>
+        </div>
+        <div class="receipt-grid" id="entradasGrid"></div>
+      </div>
+
       <div class="section-divider">
         <span>Comparação da meta com mês específico</span>
       </div>
@@ -191,9 +199,13 @@
 
       <div class="card">
         <h2>Gasto real por subcategoria</h2>
-        <div class="stat-line" style="margin:6px 0 14px;">
+        <div class="stat-line" style="margin:6px 0 10px;">
           <span class="stat-line-k">Total gasto no mês</span>
           <span class="stat-line-v" id="metaRealTotalMes">—</span>
+        </div>
+        <div class="stat-line" style="margin:0 0 14px;">
+          <span class="stat-line-k">Sobra real pra investir</span>
+          <span class="stat-line-v" id="metaRealSobraMes">—</span>
         </div>
         <span class="hint">mesma ordem e cores do gráfico de metas acima (inclusive subcategorias com meta zero) · % em relação ao total gasto no mês</span>
         <div class="chart-box" id="metaRealSubcategoriaBox" style="height:640px;"><canvas id="metaRealSubcategoriaChart"></canvas></div>
@@ -209,6 +221,7 @@
           <div class="receipt-item"><div class="k">Vs. mês anterior</div><div class="v" id="kpiDelta">—</div><div class="sub" id="kpiDeltaSub"></div></div>
           <div class="receipt-item"><div class="k">Subcategoria líder</div><div class="v" id="kpiTopCat" style="font-size:16px;">—</div><div class="sub" id="kpiTopCatSub"></div></div>
           <div class="receipt-item"><div class="k">Maior despesa única</div><div class="v" id="kpiMaxItem" style="font-size:16px;">—</div><div class="sub" id="kpiMaxItemSub"></div></div>
+          <div class="receipt-item"><div class="k">Sobra real pra investir</div><div class="v" id="kpiSobraMes" style="font-size:16px;">—</div></div>
         </div>
       </div>
 
@@ -451,6 +464,20 @@ let subcatIndex = {};     // normalized subcat -> {categoria, nome, meta}
 let categoriaColor = {};  // categoria -> color
 let globalMetaTotal = 0;
 let despesasAnuaisImportantes = { titulo: '', itens: [] };
+let entradasDinheiro = [];
+let totalEntradasDinheiro = 0;
+
+function renderEntradasSection(){
+  totalEntradasDinheiro = entradasDinheiro.reduce((s,e)=>s+e.valor, 0);
+  const sobraPlanejada = totalEntradasDinheiro - globalMetaTotal;
+  const grid = document.getElementById('entradasGrid');
+  document.getElementById('entradasCount').textContent = `${entradasDinheiro.length} entrada${entradasDinheiro.length!==1?'s':''}`;
+  grid.innerHTML = entradasDinheiro.map(e => `
+    <div class="receipt-item"><div class="k">${e.nome}</div><div class="v" style="font-size:18px;">${fmtBRL(e.valor)}</div></div>
+  `).join('')
+  + `<div class="receipt-item"><div class="k">Total de entradas</div><div class="v gold">${fmtBRL(totalEntradasDinheiro)}</div></div>`
+  + `<div class="receipt-item"><div class="k">Sobra planejada pra investir</div><div class="v" style="color:${sobraPlanejada>=0?'var(--sage)':'var(--rust)'};">${fmtBRL(sobraPlanejada)}</div><div class="sub">entradas − meta mensal total</div></div>`;
+}
 
 let investimentos = [];      // {cpf, objetivo, status, nome, valor, tipoRendimento, rendContratado, ir, tipo, temFGC, corretora, ondeEsta, dataInicio, dataFim}
 let selicHistorico = [];     // [{start:Date, end:Date|null, taxa:number}] sorted by start asc
@@ -908,6 +935,8 @@ const metaCharts = {};
 function renderMetasTab(){
   document.getElementById('metaMensalTotalHero').textContent = fmtBRL(globalMetaTotal);
 
+  renderEntradasSection();
+
   const anuaisEl = document.getElementById('despesasAnuaisLine');
   if(despesasAnuaisImportantes.itens.length){
     anuaisEl.textContent = `${despesasAnuaisImportantes.titulo}: ${despesasAnuaisImportantes.itens.join(', ')}`;
@@ -995,6 +1024,12 @@ function renderMetaRealChart(catEntries, mes){
   const monthRows = rows.filter(r => r.mes === mes);
   const totalMes = monthRows.reduce((s,r)=>s+r.valor,0);
   document.getElementById('metaRealTotalMes').textContent = fmtBRL(totalMes);
+  const sobraReal = totalEntradasDinheiro - totalMes;
+  const sobraEl = document.getElementById('metaRealSobraMes');
+  sobraEl.textContent = fmtBRL(sobraReal);
+  sobraEl.style.color = sobraReal >= 0 ? 'var(--sage)' : 'var(--rust)';
+  const kpiSobra = document.getElementById('kpiSobraMes');
+  if(kpiSobra){ kpiSobra.textContent = fmtBRL(sobraReal); kpiSobra.style.color = sobraReal >= 0 ? 'var(--sage)' : 'var(--rust)'; }
 
   const subLabels = [], subValues = [], subColors = [];
   catEntries.forEach(([cat]) => {
@@ -1103,6 +1138,11 @@ function buildCategorias(data){
     despesasAnuaisImportantes.titulo = header[iAnuais].trim();
     despesasAnuaisImportantes.itens = body.map(r => (r[iAnuais]||'').trim()).filter(Boolean);
   }
+
+  // colunas J (índice 9, nome) e K (índice 10, valor): entradas de dinheiro
+  entradasDinheiro = body
+    .map(r => ({ nome: (r[9]||'').trim(), valor: parseValor(r[10]) }))
+    .filter(e => e.nome);
 }
 
 function buildExpenses(data){
