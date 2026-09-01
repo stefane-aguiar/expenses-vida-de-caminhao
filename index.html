@@ -370,7 +370,7 @@
 
       <div class="card">
         <h2>Total de dinheiro</h2>
-        <span class="hint">somente valores reais que você registrou na planilha</span>
+        <span class="hint">meses já registrados são exatamente o que você anotou · meses seguintes são calculados a partir do valor de hoje de cada investimento ativo, com a taxa contratada de cada um</span>
         <div class="chart-box tall"><canvas id="totalDinheiroChart"></canvas></div>
       </div>
 
@@ -385,7 +385,7 @@
             </select>
           </div>
         </div>
-        <span class="hint">apenas meses já registrados na planilha (colunas de rendimento da aba "Total de dinheiro") — sem projeção</span>
+        <span class="hint">meses já registrados vêm das colunas de rendimento da planilha · meses seguintes são a média ponderada da taxa líquida contratada dos investimentos ativos</span>
         <div class="chart-box tall"><canvas id="rendimentoChart"></canvas></div>
       </div>
 
@@ -486,7 +486,9 @@ let totalDinheiroHist = {};  // 'mm/yyyy' -> valor (real, registrado manualmente
 let rendTotalHist = {};      // 'mm/yyyy' -> rendimento total (%) real, coluna C da planilha
 let rendInvestHist = {};     // 'mm/yyyy' -> rendimento só investimentos (%) real, coluna D da planilha
 let totalDinheiroMonths = []; // meses (mm/yyyy) ordenados presentes na aba Total de dinheiro
-let investMonthsSorted = []; // união de meses relevantes pra abas de investimento (histórico + projeção 24 meses à frente)
+let investMonthsSorted = []; // união de meses relevantes pra abas de investimento (histórico + horizonte futuro calculado)
+let valorRefDate = null;   // data do checkpoint (extraída do cabeçalho "Valor em DD/MM/AAAA")
+let valorRefMesKey = null; // mesma data, em formato mm/yyyy
 
 function parsePercent(raw){
   if(!raw) return 0;
@@ -547,7 +549,11 @@ function buildInvestMonthsSorted(){
   if(allKeys.size === 0){ investMonthsSorted = []; return; }
   const sortedKeys = Array.from(allKeys).sort((a,b)=>monthSortKey(a)-monthSortKey(b));
   const start = sortedKeys[0];
-  const end = sortedKeys[sortedKeys.length-1];
+  const now = new Date();
+  const currentKey = `${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
+  const horizonKey = addMonthsToKey(currentKey, 12);
+  const naturalEnd = sortedKeys[sortedKeys.length-1];
+  const end = monthSortKey(horizonKey) > monthSortKey(naturalEnd) ? horizonKey : naturalEnd;
   const list = [];
   let cur = start;
   let guard = 0;
@@ -559,12 +565,17 @@ function buildInvestMonthsSorted(){
   investMonthsSorted = list;
 }
 
-// rendimento: só meses reais, direto das colunas C/D da planilha "Total de dinheiro" — sem cálculo/projeção
+// rendimento: meses já registrados vêm direto das colunas C/D da planilha "Total de dinheiro";
+// meses depois do checkpoint são calculados com base nos dados de Investimentos
 function getRendSeries(rangeMonths){
-  return rangeMonths.map(mes => ({
-    total: rendTotalHist[mes] !== undefined ? rendTotalHist[mes] : null,
-    soInvest: rendInvestHist[mes] !== undefined ? rendInvestHist[mes] : null
-  }));
+  return rangeMonths.map(mes => {
+    if(rendTotalHist[mes] !== undefined || rendInvestHist[mes] !== undefined){
+      return { total: rendTotalHist[mes] !== undefined ? rendTotalHist[mes] : null,
+               soInvest: rendInvestHist[mes] !== undefined ? rendInvestHist[mes] : null };
+    }
+    const wa = waAnnualParaMes(mes);
+    return { total: wa, soInvest: wa };
+  });
 }
 
 const investCharts = {};
@@ -785,10 +796,11 @@ function renderInvestTab(){
   document.getElementById('liquidezDiariaTotal').textContent = fmtBRL(liquidezDiaria);
 
   if(totalDinheiroMonths.length){
-    const lastMes = totalDinheiroMonths[totalDinheiroMonths.length-1];
+    const now = new Date();
+    const hojeMes = `${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
     const taxaAposAtual = parseFloat(document.getElementById('taxaAposInput').value) || 8;
-    const salarioAtual = (taxaAposAtual/100 * totalDinheiroHist[lastMes]) / 12;
-    document.getElementById('salarioAposAtual').textContent = `${fmtBRL(salarioAtual)} (${monthLabel(lastMes)})`;
+    const salarioAtual = (taxaAposAtual/100 * totalDinheiroAt(hojeMes)) / 12;
+    document.getElementById('salarioAposAtual').textContent = `${fmtBRL(salarioAtual)} (${monthLabel(hojeMes)})`;
   }
 
   // tabela de dados brutos — só ativos, maior rentabilidade líquida atual primeiro
@@ -841,13 +853,12 @@ function renderInvestTab(){
   const rangeMonths = getInvestRangeMonths();
   const labels = rangeMonths.map(monthLabel);
 
-  // Total de dinheiro — somente meses reais, dentro do período selecionado
-  const realRangeMonths = rangeMonths.filter(m => totalDinheiroHist[m] !== undefined);
+  // Total de dinheiro — real até o checkpoint, calculado a partir dali com base nos investimentos ativos
   if(investCharts.totalDinheiroChart) investCharts.totalDinheiroChart.destroy();
   investCharts.totalDinheiroChart = new Chart(document.getElementById('totalDinheiroChart'), {
     type:'bar',
-    data: { labels: realRangeMonths.map(monthLabel), datasets: [{
-      label:'Total de dinheiro', data: realRangeMonths.map(m=>totalDinheiroHist[m]),
+    data: { labels, datasets: [{
+      label:'Total de dinheiro', data: rangeMonths.map(m=>totalDinheiroAt(m)),
       backgroundColor: '#d4a94e', borderRadius:4,
       datalabels: { display:true, color:'#e9e4d8', anchor:'end', align:'top', font:{size:10,weight:'600'}, formatter: v=>fmtBRLShort(v) }
     }]},
@@ -886,9 +897,9 @@ function renderInvestTab(){
     }
   });
 
-  // Salário aposentadoria — só meses com Total de dinheiro real
+  // Salário aposentadoria — real até o checkpoint, calculado a partir dali
   const taxaApos = parseFloat(document.getElementById('taxaAposInput').value) || 8;
-  const aposSeries = rangeMonths.map(m => totalDinheiroHist[m] !== undefined ? (taxaApos/100 * totalDinheiroHist[m]) / 12 : null);
+  const aposSeries = rangeMonths.map(m => (taxaApos/100 * totalDinheiroAt(m)) / 12);
   if(investCharts.aposentadoriaChart) investCharts.aposentadoriaChart.destroy();
   investCharts.aposentadoriaChart = new Chart(document.getElementById('aposentadoriaChart'), {
     type:'line',
@@ -1221,19 +1232,31 @@ function buildInvestimentos(data){
     dataInicio: parseDateBR(r[iInicio]),
     dataFim: parseDateBR(r[iFim])
   })).filter(r => r.nome || r.valorRef > 0 || r.valorInicial > 0);
+
+  // extrai a data-checkpoint do próprio texto do cabeçalho, ex: "Valor em 01/09/2026"
+  const headerText = header[iValorRef] || '';
+  const dm = headerText.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+  if(dm){
+    valorRefDate = new Date(+dm[3], +dm[2]-1, +dm[1]);
+    valorRefMesKey = `${dm[2]}/${dm[3]}`;
+  }
 }
 
-// calcula o valor atual de cada investimento a partir do valor inicial + rendimento acumulado mês a mês
-// (precisa rodar depois de buildSelic/buildIPCA, já que taxaLiquidaAnual depende delas)
-function computeValorAtual(inv){
-  if(!inv.dataInicio || !(inv.valorInicial > 0)) return inv.valorRef || 0;
+// valor de um investimento em um mês-alvo: usa o valor da coluna E (checkpoint) como base,
+// e só compõe mês a mês a partir dali quando o mês-alvo é depois do checkpoint
+function computeValorAtual(inv, mesKeyAlvo){
   const now = new Date();
-  const limite = (inv.dataFim && inv.dataFim < now) ? inv.dataFim : now;
-  const endKey = `${String(limite.getMonth()+1).padStart(2,'0')}/${limite.getFullYear()}`;
-  let valor = inv.valorInicial;
-  let curMes = `${String(inv.dataInicio.getMonth()+1).padStart(2,'0')}/${inv.dataInicio.getFullYear()}`;
+  const hojeKey = `${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
+  const alvo = mesKeyAlvo || hojeKey;
+  if(!valorRefMesKey || monthSortKey(alvo) <= monthSortKey(valorRefMesKey)) return inv.valorRef || 0;
+
+  const limite = (inv.dataFim && monthSortKey(alvo) > monthSortKey(`${String(inv.dataFim.getMonth()+1).padStart(2,'0')}/${inv.dataFim.getFullYear()}`))
+    ? `${String(inv.dataFim.getMonth()+1).padStart(2,'0')}/${inv.dataFim.getFullYear()}` : alvo;
+
+  let valor = inv.valorRef || 0;
+  let curMes = valorRefMesKey;
   let guard = 0;
-  while(monthSortKey(curMes) <= monthSortKey(endKey) && guard < 600){
+  while(monthSortKey(curMes) < monthSortKey(limite) && guard < 600){
     const taxaAnual = taxaLiquidaAnual(inv, curMes);
     const taxaMensal = Math.pow(1 + taxaAnual/100, 1/12) - 1;
     valor = valor * (1 + taxaMensal);
@@ -1249,6 +1272,25 @@ function computeInvestValores(){
     inv.valor = computeValorAtual(inv);
     inv.rentabilidadeAtual = (inv.dataInicio && !(inv.dataFim && inv.dataFim < now)) ? taxaLiquidaAnual(inv, curMesKey) : null;
   });
+}
+
+// soma de todos os investimentos ativos num mês: real (se já registrado) ou calculado a partir do checkpoint
+function totalDinheiroAt(mes){
+  if(totalDinheiroHist[mes] !== undefined) return totalDinheiroHist[mes];
+  return investimentos.filter(inv => investAtivoNoMes(inv, mes)).reduce((s,inv) => s + computeValorAtual(inv, mes), 0);
+}
+
+// média ponderada (pelo valor de cada investimento naquele mês) da taxa líquida anual da carteira ativa
+function waAnnualParaMes(mes){
+  const ativos = investimentos.filter(inv => investAtivoNoMes(inv, mes));
+  if(!ativos.length) return null;
+  let sumValor = 0, sumWeighted = 0;
+  ativos.forEach(inv => {
+    const v = computeValorAtual(inv, mes);
+    sumValor += v;
+    sumWeighted += v * taxaLiquidaAnual(inv, mes);
+  });
+  return sumValor > 0 ? sumWeighted/sumValor : null;
 }
 
 function buildSelic(data){
