@@ -550,10 +550,7 @@ function buildInvestMonthsSorted(){
   const sortedKeys = Array.from(allKeys).sort((a,b)=>monthSortKey(a)-monthSortKey(b));
   const start = sortedKeys[0];
   const now = new Date();
-  const currentKey = `${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`;
-  const horizonKey = addMonthsToKey(currentKey, 12);
-  const naturalEnd = sortedKeys[sortedKeys.length-1];
-  const end = monthSortKey(horizonKey) > monthSortKey(naturalEnd) ? horizonKey : naturalEnd;
+  const end = `${String(now.getMonth()+1).padStart(2,'0')}/${now.getFullYear()}`; // nunca passa do mês atual
   const list = [];
   let cur = start;
   let guard = 0;
@@ -1163,7 +1160,6 @@ function buildExpenses(data){
   const iValor = findCol('Valor');
   const iData = findCol('Data');
   const iCategoria = findCol('Categoria');
-  const iMes = findCol('Mês');
 
   const body = data.slice(1);
   rows = body.map(r => {
@@ -1171,7 +1167,8 @@ function buildExpenses(data){
     const valor = parseValor(r[iValor]);
     const dataStr = (r[iData]||'').trim();
     const rawSub = (r[iCategoria]||'').trim();
-    const mes = (r[iMes]||'').trim();
+    const dataParsed = parseDateBR(dataStr);
+    const mes = dataParsed ? `${String(dataParsed.getMonth()+1).padStart(2,'0')}/${dataParsed.getFullYear()}` : '';
     const match = subcatIndex[norm(rawSub)];
     let categoria, subcategoria, subMeta;
     if(match){ categoria = match.categoria; subcategoria = match.nome; subMeta = match.meta; }
