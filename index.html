@@ -328,7 +328,11 @@
         <div class="invest-pie-grid">
           <div class="invest-pie-item"><h3>Tipos de rendimento</h3><div class="chart-box pie-tall"><canvas id="pieRendimento"></canvas></div></div>
           <div class="invest-pie-item"><h3>Tipos de investimento</h3><div class="chart-box pie-tall"><canvas id="pieTipo"></canvas></div></div>
-          <div class="invest-pie-item"><h3>Qual CPF</h3><div class="chart-box" style="height:120px;"><canvas id="pieCPF"></canvas></div></div>
+        </div>
+
+        <div class="invest-pie-item" style="margin-top:16px;">
+          <h3>Qual CPF</h3>
+          <div class="chart-box" style="height:110px;"><canvas id="pieCPF"></canvas></div>
         </div>
 
         <div class="invest-table-grid">
@@ -348,10 +352,6 @@
           </div>
         </div>
 
-        <h2 style="margin-top:28px;">FGC: onde está o dinheiro</h2>
-        <span class="hint">apenas investimentos marcados com "Tem FGC" · agrupado por instituição emissora, não pela corretora</span>
-        <div class="chart-box tall"><canvas id="fgcChart"></canvas></div>
-
         <h2 style="margin-top:28px;">Rentabilidade por tipo (hoje)</h2>
         <span class="hint">média ponderada pelo valor de cada investimento — não é a alocação, é o quanto cada grupo está rendendo líquido de IR agora</span>
         <div class="invest-table-grid">
@@ -364,6 +364,10 @@
             <div class="chart-box small"><canvas id="rentTipoInvestimentoChart"></canvas></div>
           </div>
         </div>
+
+        <h2 style="margin-top:28px;">FGC: onde está o dinheiro</h2>
+        <span class="hint">apenas investimentos marcados com "Tem FGC" · agrupado por instituição emissora, não pela corretora</span>
+        <div class="chart-box tall"><canvas id="fgcChart"></canvas></div>
       </div>
 
       <div class="row-controls">
@@ -723,10 +727,7 @@ function renderStackedBar100(canvasId, dataObj, colorOffset){
       scales: { x: { stacked:true, display:false, max: total }, y: { stacked:true, display:false } },
       layout: { padding: 4 },
       plugins: {
-        legend: { position:'bottom', labels:{ color:'#e9e4d8', font:{size:12}, boxWidth:12, generateLabels: (chart) => chart.data.datasets.map((ds,i) => {
-          const pct = total ? (ds.data[0]/total*100).toFixed(1) : '0.0';
-          return { text: `${ds.label} — ${pct.replace('.',',')}%`, fillStyle: ds.backgroundColor, strokeStyle: ds.backgroundColor, index:i };
-        }) } },
+        legend: { display:false },
         tooltip: { callbacks: { label: ctx => { const pct = total ? (ctx.parsed.x/total*100).toFixed(1) : 0; return `${ctx.dataset.label}: ${fmtBRL(ctx.parsed.x)} (${pct}%)`; } } }
       }
     }
