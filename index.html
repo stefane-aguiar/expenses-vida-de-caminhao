@@ -1277,12 +1277,12 @@ function computeInvestValores(){
 // soma de todos os investimentos ativos num mês: real (se já registrado) ou calculado a partir do checkpoint
 function totalDinheiroAt(mes){
   if(totalDinheiroHist[mes] !== undefined) return totalDinheiroHist[mes];
-  return investimentos.filter(inv => investAtivoNoMes(inv, mes)).reduce((s,inv) => s + computeValorAtual(inv, mes), 0);
+  return investimentos.filter(inv => contaNoTotalFuturo(inv, mes)).reduce((s,inv) => s + computeValorAtual(inv, mes), 0);
 }
 
 // média ponderada (pelo valor de cada investimento naquele mês) da taxa líquida anual da carteira ativa
 function waAnnualParaMes(mes){
-  const ativos = investimentos.filter(inv => investAtivoNoMes(inv, mes));
+  const ativos = investimentos.filter(inv => contaNoTotalFuturo(inv, mes));
   if(!ativos.length) return null;
   let sumValor = 0, sumWeighted = 0;
   ativos.forEach(inv => {
@@ -1398,11 +1398,13 @@ function taxaLiquidaAnual(inv, mesKey){
   const ir = irRateFor(inv, mesKey);
   return bruta * (1 - ir/100);
 }
-function investAtivoNoMes(inv, mesKey){
-  const ref = monthKeyToDate(mesKey);
-  if(inv.dataInicio && inv.dataInicio > ref) return false;
-  if(inv.dataFim && inv.dataFim < ref) return false;
-  if(!inv.dataFim && isStatusEncerrado(inv)) return false;
+// Um investimento entra no total de "hoje pra frente" se: (1) já está com status Ativo hoje, e
+// (2) já começou até o mês em questão. NUNCA some do total por ter vencido — depois da Data Fim,
+// o valor dele simplesmente para de compor (fica congelado no valor da data do vencimento), mas
+// continua contando na soma, porque esse dinheiro não desaparece, só para de render naquela taxa.
+function contaNoTotalFuturo(inv, mesKey){
+  if(!isStatusAtivo(inv)) return false;
+  if(inv.dataInicio && inv.dataInicio > monthKeyToDate(mesKey)) return false;
   return true;
 }
 
