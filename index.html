@@ -1043,6 +1043,7 @@ function renderMetaRealChart(catEntries, mes){
     const color = categoriaColor[cat] || '#d4a94e';
     catMap[cat].subcategorias.slice().sort((a,b)=>b.meta-a.meta).forEach(s => {
       const gasto = monthRows.filter(r => r.categoria === cat && r.subcategoria === s.nome).reduce((sum,r)=>sum+r.valor,0);
+      if(gasto <= 0 && s.meta <= 0) return;
       subLabels.push(s.nome); subValues.push(gasto); subColors.push(color);
     });
   });
