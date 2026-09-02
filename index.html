@@ -422,7 +422,7 @@
         <table class="compact">
           <thead><tr>
             <th>Nome do investimento</th><th>Tipo</th><th style="text-align:center;">Rentabilidade líq. atual</th><th style="text-align:right;">Valor inicial</th><th style="text-align:right;">Valor atual</th>
-            <th>Tipo de rendimento</th><th>Rendimento contratado</th><th>Onde está</th><th>Liquidez</th><th>Data início</th><th>Data fim</th>
+            <th>Tipo de rendimento</th><th>Rendimento contratado</th><th>Liquidez</th><th>Data início</th><th>Data fim</th>
           </tr></thead>
           <tbody id="investTableBody"></tbody>
         </table>
@@ -812,7 +812,6 @@ function renderInvestTab(){
       <td class="val">${fmtBRL(inv.valor)}</td>
       <td>${inv.tipoRendimento}</td>
       <td>${inv.rendContratado.toFixed(2).replace('.',',')}%</td>
-      <td>${inv.ondeEsta}</td>
       <td>${inv.liquidez}</td>
       <td>${inv.dataInicioRaw || '—'}</td>
       <td>${inv.dataFimRaw || '—'}</td>
