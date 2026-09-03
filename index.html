@@ -390,7 +390,7 @@
         </table>
         </div>
 
-        <h2 style="margin-top:28px;">Vencendo nos próximos 6 meses</h2>
+        <h2 style="margin-top:28px;">🚨 Vencendo nos próximos 6 meses</h2>
         <span class="hint">investimentos ativos com Data Fim dentro dos próximos 6 meses, do mais próximo pro mais distante</span>
         <div style="overflow-x:auto;">
         <table class="compact">
@@ -899,7 +899,7 @@ function renderVencendoTable(ativos){
       <td>${inv.liquidez}</td>
       <td>${inv.dataInicioRaw || '—'}</td>
       <td>${inv.dataFimRaw || '—'}</td>
-    </tr>`).join('') : `<tr><td colspan="10" style="text-align:center;color:var(--ink-dim);">Nenhum investimento vencendo nos próximos 6 meses.</td></tr>`;
+    </tr>`).join('') : `<tr><td colspan="10" style="text-align:center;color:var(--ink-dim);">☑️ Nenhum investimento vencendo nos próximos 6 meses.</td></tr>`;
 }
 
 function buildInvestRangeSelectors(){
