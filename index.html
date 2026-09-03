@@ -27,13 +27,18 @@
   h1{ font-family:'Fraunces',serif; font-weight:600; font-size:clamp(28px,4vw,38px); margin:0; color:var(--paper); letter-spacing:-0.01em; }
   #lastUpdated{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-dim); margin-top:6px; }
 
-  .tabs{ display:flex; gap:6px; margin-bottom:22px; }
+  .tabs-wrap{ display:flex; align-items:flex-end; gap:18px; margin-bottom:22px; }
+  .tabs-group{ display:flex; flex-direction:column; gap:7px; }
+  .tabs-group-label{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; color:var(--ink-dim); padding-left:2px; }
+  .tabs-divider{ width:1px; align-self:stretch; background:var(--line); margin-bottom:2px; }
+  .tabs{ display:flex; gap:6px; }
   .tab-btn{
     font-family:'IBM Plex Mono',monospace; font-size:12px; text-transform:uppercase; letter-spacing:.06em;
     background: var(--surface); border:1px solid var(--line); color: var(--ink-dim);
     padding:10px 18px; border-radius:8px; cursor:pointer;
   }
   .tab-btn.active{ background: var(--gold); color:#191307; font-weight:600; border-color:var(--gold); }
+  .tab-btn-patrimonio.active{ background: var(--sage); color:#0e1512; border-color:var(--sage); }
   .tab-panel{ display:none; }
   .tab-panel.active{ display:block; }
 
@@ -106,6 +111,7 @@
   }
   .stat-line-k{ font-family:'IBM Plex Mono',monospace; font-size:12px; text-transform:uppercase; letter-spacing:.06em; color:var(--ink-dim); }
   .stat-line-v{ font-family:'IBM Plex Mono',monospace; font-size:22px; font-weight:600; color:var(--gold); }
+  .stat-line-item{ display:flex; flex-direction:column; gap:5px; }
   .stat-hero{ text-align:center; margin:6px 0 14px; }
   .stat-hero-k{ font-family:'IBM Plex Mono',monospace; font-size:12px; text-transform:uppercase; letter-spacing:.1em; color:var(--ink-dim); display:block; margin-bottom:6px; }
   .stat-hero-v{ font-family:'Fraunces',serif; font-size:clamp(32px,5vw,46px); font-weight:700; color:var(--gold); }
@@ -147,11 +153,22 @@
 
   <div id="app">
 
-    <div class="tabs">
-      <button class="tab-btn active" data-tab="metas">Metas e gastos do mês</button>
-      <button class="tab-btn" data-tab="tempo">Evolução dos gastos</button>
-      <button class="tab-btn" data-tab="invest">Investimentos</button>
-      <button class="tab-btn" data-tab="apos">Aposentadoria</button>
+    <div class="tabs-wrap">
+      <div class="tabs-group">
+        <span class="tabs-group-label">Orçamento</span>
+        <div class="tabs">
+          <button class="tab-btn active" data-tab="metas">Metas e gastos do mês</button>
+          <button class="tab-btn" data-tab="tempo">Evolução dos gastos</button>
+        </div>
+      </div>
+      <div class="tabs-divider"></div>
+      <div class="tabs-group">
+        <span class="tabs-group-label">Patrimônio</span>
+        <div class="tabs">
+          <button class="tab-btn tab-btn-patrimonio" data-tab="invest">Investimentos</button>
+          <button class="tab-btn tab-btn-patrimonio" data-tab="apos">Aposentadoria</button>
+        </div>
+      </div>
     </div>
 
     <!-- ===================== TAB: METAS E GASTOS DO MÊS ===================== -->
@@ -322,8 +339,14 @@
           <span class="stat-mid-v" id="salarioAposAtual">—</span>
         </div>
         <div class="stat-line">
-          <span class="stat-line-k">Disponível para saque (liquidez diária)</span>
-          <span class="stat-line-v" id="liquidezDiariaTotal">—</span>
+          <div class="stat-line-item">
+            <span class="stat-line-k">Disponível para saque (liquidez diária)</span>
+            <span class="stat-line-v" id="liquidezDiariaTotal">—</span>
+          </div>
+          <div class="stat-line-item">
+            <span class="stat-line-k">Rentabilidade atual da carteira</span>
+            <span class="stat-line-v" id="rentabilidadeCarteiraTotal">—</span>
+          </div>
         </div>
         <div class="invest-pie-grid">
           <div class="invest-pie-item"><h3>Tipos de rendimento</h3><div class="chart-box pie-tall"><canvas id="pieRendimento"></canvas></div></div>
@@ -978,6 +1001,13 @@ function renderInvestTab(){
     .filter(i => (i.liquidez||'').toLowerCase().includes('diária') || (i.liquidez||'').toLowerCase().includes('diaria'))
     .reduce((s,i)=>s+i.valor, 0);
   document.getElementById('liquidezDiariaTotal').textContent = fmtBRL(liquidezDiaria);
+
+  const comRentab = ativos.filter(i => i.rentabilidadeAtual !== null && i.rentabilidadeAtual !== undefined);
+  const somaValorRentab = comRentab.reduce((s,i)=>s+i.valor, 0);
+  const rentabCarteira = somaValorRentab > 0
+    ? comRentab.reduce((s,i)=>s+i.valor*i.rentabilidadeAtual, 0) / somaValorRentab
+    : 0;
+  document.getElementById('rentabilidadeCarteiraTotal').textContent = `${rentabCarteira.toFixed(2).replace('.',',')}% a.a. líquido`;
 
   if(totalDinheiroMonths.length){
     const now = new Date();
