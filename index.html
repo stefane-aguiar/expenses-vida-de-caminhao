@@ -27,10 +27,14 @@
   h1{ font-family:'Fraunces',serif; font-weight:600; font-size:clamp(28px,4vw,38px); margin:0; color:var(--paper); letter-spacing:-0.01em; }
   #lastUpdated{ font-family:'IBM Plex Mono',monospace; font-size:11px; color:var(--ink-dim); margin-top:6px; }
 
-  .tabs-wrap{ display:flex; align-items:flex-end; gap:18px; margin-bottom:22px; }
-  .tabs-group{ display:flex; flex-direction:column; gap:7px; }
-  .tabs-group-label{ font-family:'IBM Plex Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.12em; color:var(--ink-dim); padding-left:2px; }
-  .tabs-divider{ width:1px; align-self:stretch; background:var(--line); margin-bottom:2px; }
+  .tabs-wrap{ display:flex; align-items:flex-start; gap:16px; margin-bottom:22px; flex-wrap:wrap; }
+  .tabs-group{ position:relative; border:1px solid var(--line); border-radius:10px; padding:14px 12px 12px; }
+  .tabs-group-label{
+    position:absolute; top:-9px; left:10px; background:var(--bg); padding:0 6px;
+    font-family:'IBM Plex Mono',monospace; font-size:10.5px; text-transform:uppercase; letter-spacing:.12em;
+  }
+  .tabs-group-label.orcamento{ color:var(--gold); }
+  .tabs-group-label.patrimonio{ color:var(--sage); }
   .tabs{ display:flex; gap:6px; }
   .tab-btn{
     font-family:'IBM Plex Mono',monospace; font-size:12px; text-transform:uppercase; letter-spacing:.06em;
@@ -155,15 +159,14 @@
 
     <div class="tabs-wrap">
       <div class="tabs-group">
-        <span class="tabs-group-label">Orçamento</span>
+        <span class="tabs-group-label orcamento">Orçamento</span>
         <div class="tabs">
           <button class="tab-btn active" data-tab="metas">Metas e gastos do mês</button>
           <button class="tab-btn" data-tab="tempo">Evolução dos gastos</button>
         </div>
       </div>
-      <div class="tabs-divider"></div>
       <div class="tabs-group">
-        <span class="tabs-group-label">Patrimônio</span>
+        <span class="tabs-group-label patrimonio">Patrimônio</span>
         <div class="tabs">
           <button class="tab-btn tab-btn-patrimonio" data-tab="invest">Investimentos</button>
           <button class="tab-btn tab-btn-patrimonio" data-tab="apos">Aposentadoria</button>
