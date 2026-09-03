@@ -365,6 +365,43 @@
           </div>
         </div>
 
+        <h2 style="margin-top:28px;">Detalhe por tipo</h2>
+        <span class="hint">use os filtros pra "dar zoom" numa das barras dos gráficos acima e ver os investimentos que compõem ela</span>
+        <div class="row-controls" style="margin-bottom:6px;">
+          <div class="field">
+            <label for="investZoomDimSelect">Filtrar por</label>
+            <select id="investZoomDimSelect">
+              <option value="tipoRendimento">Tipo de rendimento</option>
+              <option value="tipo">Tipo de investimento</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="investZoomValueSelect">Valor</label>
+            <select id="investZoomValueSelect"></select>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+        <table class="compact">
+          <thead><tr>
+            <th>Nome do investimento</th><th style="text-align:center;">Rentabilidade líq. atual</th><th style="text-align:right;">Valor atual</th>
+            <th>Data início</th><th>Data fim</th><th id="investZoomLastColHeader">Tipo</th>
+          </tr></thead>
+          <tbody id="investZoomTableBody"></tbody>
+        </table>
+        </div>
+
+        <h2 style="margin-top:28px;">Vencendo nos próximos 6 meses</h2>
+        <span class="hint">investimentos ativos com Data Fim dentro dos próximos 6 meses, do mais próximo pro mais distante</span>
+        <div style="overflow-x:auto;">
+        <table class="compact">
+          <thead><tr>
+            <th>Nome do investimento</th><th>Tipo</th><th style="text-align:center;">Rentabilidade líq. atual</th><th style="text-align:right;">Valor inicial</th><th style="text-align:right;">Valor atual</th>
+            <th>Tipo de rendimento</th><th>Rendimento contratado</th><th>Liquidez</th><th>Data início</th><th>Data fim</th>
+          </tr></thead>
+          <tbody id="investVencendoTableBody"></tbody>
+        </table>
+        </div>
+
         <h2 style="margin-top:28px;">FGC: onde está o dinheiro</h2>
         <span class="hint">apenas investimentos marcados com "Tem FGC" · agrupado por instituição emissora, não pela corretora</span>
         <div class="chart-box tall"><canvas id="fgcChart"></canvas></div>
@@ -387,7 +424,7 @@
 
       <div class="card">
         <h2>Total de dinheiro</h2>
-        <span class="hint">meses já registrados vêm da planilha (até 01/09/2026) · meses seguintes são calculados a partir do valor de hoje de cada investimento ativo, com a taxa contratada de cada um</span>
+        <span class="hint">meses já registrados são exatamente o que você anotou · meses seguintes são calculados a partir do valor de hoje de cada investimento ativo, com a taxa contratada de cada um</span>
         <div class="chart-box tall"><canvas id="totalDinheiroChart"></canvas></div>
       </div>
 
@@ -402,7 +439,7 @@
             </select>
           </div>
         </div>
-        <span class="hint">meses já registrados vêm da planilha (até 01/09/2026) · meses seguintes são a média ponderada da taxa líquida contratada dos investimentos ativos</span>
+        <span class="hint">meses já registrados vêm das colunas de rendimento da planilha · meses seguintes são a média ponderada da taxa líquida contratada dos investimentos ativos</span>
         <div class="chart-box tall"><canvas id="rendimentoChart"></canvas></div>
       </div>
 
@@ -780,7 +817,7 @@ function renderRentabilidadePorGrupo(canvasId, ativos, keyFn, colorOffset){
     groups[k].weighted += inv.valor * inv.rentabilidadeAtual;
   });
   const entries = Object.entries(groups)
-    .map(([k,v]) => [k, v.valor>0 ? v.weighted/v.valor : 0])
+    .map(([k,v]) => [k, v.valor>0 ? v.weighted/v.valor : 0, v.valor])
     .sort((a,b) => b[1]-a[1]);
   const colors = entries.map((_,i) => COLORS[(i+(colorOffset||0)) % COLORS.length]);
 
@@ -790,10 +827,10 @@ function renderRentabilidadePorGrupo(canvasId, ativos, keyFn, colorOffset){
     data: { labels: entries.map(e=>e[0]), datasets: [{ data: entries.map(e=>e[1]), backgroundColor: colors, borderRadius:4 }] },
     options: {
       indexAxis:'y', responsive:true, maintainAspectRatio:false,
-      layout: { padding: { right: 55 } },
+      layout: { padding: { right: 110 } },
       plugins: {
-        legend:{display:false}, tooltip:{ callbacks:{ label: ctx => `${ctx.parsed.x.toFixed(2)}% a.a. líquido` } },
-        datalabels: { display:true, color:'#e9e4d8', anchor:'end', align:'right', font:{size:11,weight:'600'}, formatter: v => v.toFixed(1).replace('.',',')+'%' }
+        legend:{display:false}, tooltip:{ callbacks:{ label: ctx => `${ctx.parsed.x.toFixed(2)}% a.a. líquido — ${fmtBRL(entries[ctx.dataIndex][2])}` } },
+        datalabels: { display:true, color:'#e9e4d8', anchor:'end', align:'right', font:{size:11,weight:'600'}, formatter: (v,ctx) => `${v.toFixed(1).replace('.',',')}%  (${fmtBRLShort(entries[ctx.dataIndex][2])})` }
       },
       scales: {
         x: { ticks:{ color:'#93a598', font:{size:11}, callback:v=>v+'%' }, grid:{ color:'#2a3830' } },
@@ -801,6 +838,68 @@ function renderRentabilidadePorGrupo(canvasId, ativos, keyFn, colorOffset){
       }
     }
   });
+}
+
+function setupInvestZoomFilters(ativos){
+  const dimSel = document.getElementById('investZoomDimSelect');
+  const valSel = document.getElementById('investZoomValueSelect');
+
+  const rebuildValueOptions = () => {
+    const dim = dimSel.value;
+    const values = Array.from(new Set(ativos.map(inv => (dim==='tipo' ? inv.tipo : inv.tipoRendimento) || 'Não informado'))).sort();
+    const prevValue = valSel.value;
+    valSel.innerHTML = '';
+    values.forEach(v => { const o=document.createElement('option'); o.value=v; o.textContent=v; valSel.appendChild(o); });
+    valSel.value = values.includes(prevValue) ? prevValue : values[0];
+  };
+
+  const render = () => {
+    const dim = dimSel.value;
+    const val = valSel.value;
+    const lastColLabel = dim === 'tipo' ? 'Tipo de rendimento' : 'Tipo';
+    document.getElementById('investZoomLastColHeader').textContent = lastColLabel;
+
+    const filtered = ativos
+      .filter(inv => ((dim==='tipo' ? inv.tipo : inv.tipoRendimento) || 'Não informado') === val)
+      .slice().sort((a,b) => (b.rentabilidadeAtual ?? -Infinity) - (a.rentabilidadeAtual ?? -Infinity));
+
+    document.getElementById('investZoomTableBody').innerHTML = filtered.length ? filtered.map(inv => `
+      <tr>
+        <td>${inv.nome || '(sem nome)'}</td>
+        <td style="text-align:center;">${inv.rentabilidadeAtual !== null ? inv.rentabilidadeAtual.toFixed(2).replace('.',',')+'%' : '—'}</td>
+        <td class="val">${fmtBRL(inv.valor)}</td>
+        <td>${inv.dataInicioRaw || '—'}</td>
+        <td>${inv.dataFimRaw || '—'}</td>
+        <td>${dim==='tipo' ? inv.tipoRendimento : inv.tipo}</td>
+      </tr>`).join('') : `<tr><td colspan="6" style="text-align:center;color:var(--ink-dim);">Nenhum investimento ativo nesse grupo.</td></tr>`;
+  };
+
+  dimSel.onchange = () => { rebuildValueOptions(); render(); };
+  valSel.onchange = render;
+  rebuildValueOptions();
+  render();
+}
+
+function renderVencendoTable(ativos){
+  const now = new Date();
+  const limite = new Date(now.getFullYear(), now.getMonth()+6, now.getDate());
+  const vencendo = ativos
+    .filter(inv => inv.dataFim && inv.dataFim >= now && inv.dataFim <= limite)
+    .slice().sort((a,b) => a.dataFim - b.dataFim);
+
+  document.getElementById('investVencendoTableBody').innerHTML = vencendo.length ? vencendo.map(inv => `
+    <tr>
+      <td>${inv.nome || '(sem nome)'}</td>
+      <td>${inv.tipo}</td>
+      <td style="text-align:center;">${inv.rentabilidadeAtual !== null ? inv.rentabilidadeAtual.toFixed(2).replace('.',',')+'%' : '—'}</td>
+      <td class="val">${fmtBRL(inv.valorInicial)}</td>
+      <td class="val">${fmtBRL(inv.valor)}</td>
+      <td>${inv.tipoRendimento}</td>
+      <td>${inv.rendContratado.toFixed(2).replace('.',',')}%</td>
+      <td>${inv.liquidez}</td>
+      <td>${inv.dataInicioRaw || '—'}</td>
+      <td>${inv.dataFimRaw || '—'}</td>
+    </tr>`).join('') : `<tr><td colspan="10" style="text-align:center;color:var(--ink-dim);">Nenhum investimento vencendo nos próximos 6 meses.</td></tr>`;
 }
 
 function buildInvestRangeSelectors(){
@@ -868,6 +967,9 @@ function renderInvestTab(){
 
   renderRentabilidadePorGrupo('rentTipoRendimentoChart', ativos, i=>i.tipoRendimento, 0);
   renderRentabilidadePorGrupo('rentTipoInvestimentoChart', ativos, i=>i.tipo, 4);
+
+  setupInvestZoomFilters(ativos);
+  renderVencendoTable(ativos);
 
   // total em investimentos ativos + liquidez diária
   const totalInvestido = ativos.reduce((s,i)=>s+i.valor, 0);
