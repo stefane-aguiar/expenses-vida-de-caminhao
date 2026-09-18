@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Prévia — meta no gráfico (celular)</title>
+<style>
+  :root{
+    --bg:#0a0c0b; --card:#0f1714; --panel:#131d19; --line:#22302a;
+    --txt:#e8ece9; --dim:#8b9a93; --red:#e5484d; --ok:#5fc08a;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:22px 16px 48px;background:var(--bg);color:var(--txt);
+    font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  .wrap{max-width:1180px;margin:0 auto}
+  h1{font-family:Georgia,serif;font-size:21px;margin:0 0 6px;text-align:center}
+  .sub{color:var(--dim);font-size:12.5px;text-align:center;margin:0 0 26px;line-height:1.6}
+  .grid{display:flex;flex-wrap:wrap;gap:18px;justify-content:center}
+  .phone{width:390px;flex:0 0 390px}
+  .phone h2{font-family:Georgia,serif;font-size:15px;margin:0 0 3px}
+  .phone .hint{color:var(--dim);font-size:11.5px;margin:0 0 10px;line-height:1.5;min-height:48px}
+  .screen{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 10px 8px;overflow:hidden}
+  .chart{font-size:9px}
+  .row{display:grid;grid-template-columns:100px 1fr;align-items:center;column-gap:8px;height:22px}
+  .lbl{text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;opacity:.9}
+  .track{position:relative;height:100%;display:flex;align-items:center}
+  .bar{height:10px;border-radius:2px}
+  .val{position:absolute;white-space:nowrap;font-variant-numeric:tabular-nums;color:#dfe6e2}
+  .meta-tick{position:absolute;top:2px;height:18px;width:2px;background:var(--red);border-radius:1px}
+  .over{color:var(--red)} .under{color:var(--ok)} .dim{color:var(--dim)}
+  .legend{color:var(--dim);font-size:10px;margin:0 0 8px}
+  .legend i{display:inline-block;width:2px;height:10px;background:var(--red);vertical-align:-1px;margin-right:4px}
+  .tip{position:absolute;background:#1b2723;border:1px solid #33443d;border-radius:7px;
+    padding:6px 8px;font-size:9.5px;line-height:1.5;color:var(--txt);z-index:5;
+    box-shadow:0 6px 18px rgba(0,0,0,.5);white-space:nowrap}
+  .tip b{font-weight:600}
+  .finger{position:absolute;width:26px;height:26px;border-radius:50%;
+    background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);z-index:6}
+  .note{background:var(--panel);border:1px solid var(--line);border-radius:10px;
+    padding:13px 15px;color:var(--dim);font-size:12.5px;line-height:1.7;margin-top:24px}
+  .note b{color:var(--txt)}
+  .tag{display:inline-block;font-size:10px;padding:2px 7px;border-radius:20px;margin-left:6px;vertical-align:2px}
+  .good{background:#16301f;color:#79d59d;border:1px solid #23472f}
+  .bad{background:#331a1b;color:#ea8b8e;border:1px solid #4a2527}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>As opções em largura de celular (390px)</h1>
+  <p class="sub">Set 2026 · gastos e metas reais · mesma escala do dashboard (0 a R$ 4.000)</p>
+
+  <div class="grid">
+
+    <div class="phone">
+      <h2>A — só o risquinho <span class="tag good">cabe</span></h2>
+      <p class="hint">O traço vermelho marca a meta. Não ocupa nenhum espaço horizontal: o texto continua igual ao de hoje.</p>
+      <div class="screen">
+        <div class="legend"><i></i>meta da subcategoria</div>
+        <div class="chart" id="cA" style="padding-right:88px"></div>
+      </div>
+    </div>
+
+    <div class="phone">
+      <h2>B — meta no texto <span class="tag bad">não cabe</span></h2>
+      <p class="hint">“· meta R$ 2.000 (−R$ 619)” come ~100px. Pra caber, a barra encolhe até virar um toco — e você perde a comparação entre as linhas.</p>
+      <div class="screen">
+        <div class="legend">&nbsp;</div>
+        <div class="chart" id="cB" style="padding-right:196px"></div>
+      </div>
+    </div>
+
+    <div class="phone">
+      <h2>C — as duas <span class="tag bad">não cabe</span></h2>
+      <p class="hint">Mesmo problema da B, mais o traço. No desktop funciona bem; no celular, não.</p>
+      <div class="screen">
+        <div class="legend"><i></i>meta da subcategoria</div>
+        <div class="chart" id="cC" style="padding-right:196px"></div>
+      </div>
+    </div>
+
+    <div class="phone">
+      <h2>D — risquinho + “% da meta” <span class="tag good">cabe</span></h2>
+      <p class="hint">Troca o “(14,4% do total)” por “(69% da meta)”. Mesma largura de hoje, informação mais útil. Toque na linha abre o valor exato.</p>
+      <div class="screen" style="position:relative">
+        <div class="legend"><i></i>meta da subcategoria</div>
+        <div class="chart" id="cD" style="padding-right:96px"></div>
+        <div class="tip" id="tipD"></div>
+        <div class="finger" id="fingerD"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div class="note">
+    <b>O que a largura decide:</b> sobram ~282px depois da coluna de nomes. O texto de hoje (“R$ 1.381 (14,4%)”) já consome ~85px. Somar a meta em texto pede mais ~100px, e a barra fica com ~82px pra representar de R$ 0 a R$ 4.000 — cada R$ 500 vira 10px. O gráfico deixa de ser gráfico.<br><br>
+    <b>Por isso:</b> no celular o traço é a única forma de comparar que é <b>de graça em espaço</b>, porque ele vive dentro da área da barra em vez de disputar largura com ela. O número exato entra no toque (tooltip), que no touch funciona igual ao hover — com <code>intersect:false</code> e <code>axis:'y'</code>, tocar em qualquer ponto da linha já abre, não precisa acertar o traço de 2px.
+  </div>
+</div>
+
+<script>
+const data=[
+ ["🛒Mercado",1380.69,2000,"#7ca788"],["🍔 Comer fora",912.40,1300,"#7ca788"],
+ ["😍 Rolê de gostosas",43,1000,"#5fa8a0"],["📚 Cursos",748.80,748.80,"#5fa8a0"],
+ ["🙆 Pilates/academia",0,500,"#5fa8a0"],["🛍️ Compras",1614.65,500,"#5fa8a0"],
+ ["🏠 Coisas pra casa",20,100,"#5fa8a0"],["🏠 Aluguel",3557.51,1430.40,"#d4a94e"],
+ ["💻 Internet",160.98,160,"#d4a94e"],["💡 Energia",0,100,"#d4a94e"],
+ ["💲 Tarifa da MEI",84,85,"#d4a94e"],["🍳 Gás",0,50,"#d4a94e"],
+ ["💧 Água",0,50,"#d4a94e"],["🎧 Spotify",0,31.90,"#d4a94e"],
+ ["📱 Conta celular",10,10,"#d4a94e"],["🐱 Gatos",473.04,700,"#c9a86b"],
+ ["💜 Dinheiro mãe da Ana",0,200,"#c9a86b"],["🎁 Presente",0,100,"#c9a86b"],
+ ["⛽ Gasolina",210.49,370,"#c1613f"],["🚘 Seguro do carro",195.85,191.85,"#c1613f"],
+ ["🚫 Sem parar",0,120,"#c1613f"],["⚒️ Carro manutenção",0,100,"#c1613f"],
+ ["💗 Seguro de vida",84.11,84.11,"#a888c9"],["💉 Remédio/exame/médico",68.41,50,"#a888c9"],
+ ["🚌 Metrô/trem/ônibus",0,50,"#6b95b8"]
+];
+const MAX=4000, TOTAL=9563.93;
+const brl=n=>n.toLocaleString('pt-BR',{maximumFractionDigits:0});
+const p1=n=>n.toLocaleString('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+
+function build(el,{tick=false,textMeta=false,pctMeta=false}){
+  el.innerHTML=data.map(([n,v,m,c])=>{
+    const w=Math.min(v/MAX*100,100), mw=Math.min(m/MAX*100,100);
+    let txt=`R$ ${brl(v)} <span class="dim">(${p1(v/TOTAL*100)}%)</span>`;
+    if(pctMeta){
+      const r=m>0?v/m*100:null, cls=r===null?'dim':(r>100?'over':'under');
+      txt=`R$ ${brl(v)} <span class="${cls}">(${r===null?'sem meta':p1(r)+'% da meta'})</span>`;
+    }
+    if(textMeta){
+      const d=v-m, cls=d>0?'over':(v===0?'dim':'under'), s=d>0?'+':'−';
+      txt+=` <span class="dim">· meta R$ ${brl(m)}</span> <span class="${cls}">(${s}R$ ${brl(Math.abs(d))})</span>`;
+    }
+    return `<div class="row">
+      <div class="lbl">${n}</div>
+      <div class="track">
+        <div class="bar" style="width:${w}%;background:${c}"></div>
+        ${tick?`<div class="meta-tick" style="left:calc(${mw}% - 1px)"></div>`:''}
+        <div class="val" style="left:calc(${w}% + 6px)">${txt}</div>
+      </div></div>`;
+  }).join('');
+}
+build(cA,{tick:true});
+build(cB,{textMeta:true});
+build(cC,{tick:true,textMeta:true});
+build(cD,{tick:true,pctMeta:true});
+
+// tooltip simulado no toque — linha do Aluguel (índice 7)
+const i=7, [n,v,m]=data[i];
+const top=40+i*22;
+fingerD.style.top=(top-3)+'px'; fingerD.style.left='150px';
+tipD.style.top=(top+16)+'px'; tipD.style.left='96px';
+tipD.innerHTML=`<b>${n}</b><br>Gasto: R$ ${brl(v)}<br>Meta: R$ ${brl(m)}<br><span class="over">Estourou R$ ${brl(v-m)} (+${p1((v/m-1)*100)}%)</span>`;
+</script>
+</body>
+</html>

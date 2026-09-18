@@ -1247,6 +1247,34 @@ function updateMonth(mes){
   renderMetaRealChart(metaCatEntriesGlobal, mes);
 }
 
+// risquinho vermelho na posição da meta de cada subcategoria (gráfico "meta x mês")
+// desenhado no canvas depois das barras; lê dataset.metas, na mesma ordem dos labels
+const metaTickPlugin = {
+  id: 'metaTick',
+  afterDatasetsDraw(chart){
+    const metas = chart.data.datasets[0] && chart.data.datasets[0].metas;
+    if(!metas) return;
+    const ctx = chart.ctx, xScale = chart.scales.x, area = chart.chartArea;
+    ctx.save();
+    ctx.beginPath();
+    ctx.rect(area.left, area.top, area.right - area.left, area.bottom - area.top);
+    ctx.clip();
+    ctx.strokeStyle = '#e5484d';
+    ctx.lineWidth = 2;
+    chart.getDatasetMeta(0).data.forEach((bar, i) => {
+      const meta = metas[i];
+      if(!(meta > 0)) return;
+      const px = Math.round(xScale.getPixelForValue(meta));
+      const half = Math.max((bar.height || 12) / 2 + 3, 8);
+      ctx.beginPath();
+      ctx.moveTo(px, bar.y - half);
+      ctx.lineTo(px, bar.y + half);
+      ctx.stroke();
+    });
+    ctx.restore();
+  }
+};
+
 function renderMetaRealChart(catEntries, mes){
   const monthRows = rows.filter(r => r.mes === mes);
   const totalMes = monthRows.reduce((s,r)=>s+r.valor,0);
@@ -1258,13 +1286,13 @@ function renderMetaRealChart(catEntries, mes){
   const kpiSobra = document.getElementById('kpiSobraMes');
   if(kpiSobra){ kpiSobra.textContent = fmtBRL(sobraReal); kpiSobra.style.color = sobraReal >= 0 ? 'var(--sage)' : 'var(--rust)'; }
 
-  const subLabels = [], subValues = [], subColors = [];
+  const subLabels = [], subValues = [], subColors = [], subMetas = [];
   catEntries.forEach(([cat]) => {
     const color = categoriaColor[cat] || '#d4a94e';
     catMap[cat].subcategorias.slice().sort((a,b)=>b.meta-a.meta).forEach(s => {
       const gasto = monthRows.filter(r => r.categoria === cat && r.subcategoria === s.nome).reduce((sum,r)=>sum+r.valor,0);
       if(gasto <= 0 && s.meta <= 0) return;
-      subLabels.push(s.nome); subValues.push(gasto); subColors.push(color);
+      subLabels.push(s.nome); subValues.push(gasto); subColors.push(color); subMetas.push(s.meta);
     });
   });
 
@@ -1272,7 +1300,8 @@ function renderMetaRealChart(catEntries, mes){
   if(metaCharts.realSubcategoriaChart) metaCharts.realSubcategoriaChart.destroy();
   metaCharts.realSubcategoriaChart = new Chart(document.getElementById('metaRealSubcategoriaChart'), {
     type: 'bar',
-    data: { labels: subLabels, datasets: [{ data: subValues, backgroundColor: subColors, borderRadius:4 }] },
+    data: { labels: subLabels, datasets: [{ data: subValues, backgroundColor: subColors, borderRadius:4, metas: subMetas }] },
+    plugins: [metaTickPlugin],
     options: {
       indexAxis:'y', responsive:true, maintainAspectRatio:false,
       layout: { padding: { right: 110 } },
@@ -1284,7 +1313,7 @@ function renderMetaRealChart(catEntries, mes){
         }
       },
       scales: {
-        x: { ticks:{ color:'#93a598', font:{size:11}, callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } },
+        x: { suggestedMax: Math.max(0, ...subMetas), ticks:{ color:'#93a598', font:{size:11}, callback:v=>fmtBRLShort(v) }, grid:{ color:'#2a3830' } },
         y: { ticks:{ color:'#e9e4d8', font:{size:11} }, grid:{ display:false } }
       }
     }
