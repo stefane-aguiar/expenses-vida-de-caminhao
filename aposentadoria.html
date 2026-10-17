@@ -212,10 +212,6 @@
                 <input type="number" id="monthlyContribution" value="6000" onchange="updateAll()">
             </div>
             <div class="param-group">
-                <label>Meta de Aposentadoria (R$)</label>
-                <input type="number" id="targetWealth" value="2000000" onchange="updateAll()">
-            </div>
-            <div class="param-group">
                 <label>Rendimento Investimentos (% a.a.)</label>
                 <input type="number" id="annualReturn" value="12" step="0.5" onchange="updateAll()">
             </div>
@@ -228,6 +224,26 @@
                 <input type="number" id="rentPaid" value="4000" onchange="updateAll()">
             </div>
         </div>
+
+        <!-- ===================== META DE APOSENTADORIA (POR SALÁRIO) ===================== -->
+        <h3 class="section-title">🎯 Meta de aposentadoria (viver de renda)</h3>
+        <div class="parameters" style="margin-bottom: 8px;">
+            <div class="param-group">
+                <label>Salário desejado (R$/mês, valor de hoje)</label>
+                <input type="number" id="salaryToday" value="9000" onchange="updateAll()">
+            </div>
+            <div class="param-group">
+                <label>Rendimento na aposentadoria (% a.a.)</label>
+                <input type="number" id="retirementReturn" value="8" step="0.5" onchange="updateAll()">
+                <span class="param-hint">Taxa que você saca todo ano pra formar o salário</span>
+            </div>
+            <div class="param-group">
+                <label>Inflação esperada (% a.a.)</label>
+                <input type="number" id="inflationRate" value="4.5" step="0.1" onchange="updateAll()">
+                <span class="param-hint">Focus: IPCA ~5,2% (2026), ~4,3% (2027)</span>
+            </div>
+        </div>
+        <p style="color:#93c5fd; font-size:0.82rem; margin-bottom:30px; line-height:1.5;" id="targetTodayHint"></p>
 
         <!-- ===================== IMÓVEL DA ILHA ===================== -->
         <h3 class="section-title">🏝️ Casa própria na Ilhabela</h3>
@@ -281,7 +297,7 @@
         </div>
 
         <!-- ===================== CARDS COMPARATIVOS ===================== -->
-        <h3 class="section-title" style="color:#4ade80;margin-top:30px;">🎯 Tempo até atingir o objetivo (2M + casa própria)</h3>
+        <h3 class="section-title" style="color:#4ade80;margin-top:30px;">🎯 Tempo até atingir o objetivo (renda desejada + casa própria)</h3>
         <div class="scenario-cards">
             <div class="scenario-card" id="card-default">
                 <h4>Default — Status quo</h4>
@@ -301,7 +317,7 @@
             </div>
             <div class="scenario-card" id="card-c2">
                 <h4>Cenário 2 — Vende e financia já</h4>
-                <div class="tag">Vende SP, compra a casa já com entrada + financiamento, e junta os 2M</div>
+                <div class="tag">Vende SP, compra a casa já com entrada + financiamento, e junta a renda</div>
                 <div class="big" id="years-c2">—</div>
                 <div class="date" id="date-c2">—</div>
                 <div class="house" id="house-c2"></div>
@@ -338,11 +354,12 @@
 
         <!-- ===================== NOTAS ===================== -->
         <div class="formula-box">
+            <strong>A meta (patrimônio p/ a renda):</strong> em vez de um número fixo, você informa o salário que quer (em valores de hoje) e a taxa que vai sacar. O patrimônio necessário = salário × 12 ÷ taxa de retirada, corrigido pela inflação até a data da aposentadoria. Como a inflação sobe o custo de vida, o alvo cresce com o tempo.<br><br>
             <strong>Como cada cenário funciona:</strong><br>
-            <strong>Default:</strong> mantém o apê de SP alugado (segue recebendo o aluguel), investe o aporte cheio, e no fim vende o apê pra ajudar a comprar a casa. Objetivo = investimentos ≥ 2M + preço da casa na data − valor da venda de SP.<br>
-            <strong>Cenário 1:</strong> vende SP na data escolhida (o valor entra nos investimentos e o aporte cai, porque perde o aluguel recebido), junta até 2M + preço da casa, e compra à vista no fim.<br>
-            <strong>Cenário 2:</strong> vende SP e compra a casa já — a venda vira entrada e o resto é financiado (SAC). Para de pagar aluguel (aporte sobe 1.400), mas paga a parcela. Objetivo = investimentos ≥ 2M <em>e</em> financiamento quitado.<br><br>
-            <span style="color:#fdba74;">O preço da casa na Ilha cresce com o tempo (valorização). Juros sempre compostos: taxa mensal = (1 + taxa anual)^(1/12) − 1.</span>
+            <strong>Default:</strong> mantém o apê de SP alugado (segue recebendo o aluguel), investe o aporte cheio, e no fim vende o apê pra ajudar a comprar a casa. Objetivo = investimentos ≥ patrimônio p/ a renda + preço da casa na data − valor da venda de SP.<br>
+            <strong>Cenário 1:</strong> vende SP na data escolhida (o valor entra nos investimentos e o aporte cai, porque perde o aluguel recebido), junta até o patrimônio p/ a renda + preço da casa, e compra à vista no fim.<br>
+            <strong>Cenário 2:</strong> vende SP e compra a casa já — a venda vira entrada e o resto é financiado (SAC). Para de pagar aluguel (aporte sobe 1.400), mas paga a parcela. Objetivo = investimentos ≥ patrimônio p/ a renda <em>e</em> financiamento quitado.<br><br>
+            <span style="color:#fdba74;">O preço da casa na Ilha também cresce com o tempo (valorização). Juros sempre compostos: taxa mensal = (1 + taxa anual)^(1/12) − 1. Modo de retirada atual: saque do rendimento nominal cheio (opção A).</span>
         </div>
     </div>
 
@@ -400,7 +417,9 @@
             return {
                 currentWealth: num('currentWealth'),
                 monthlyContribution: num('monthlyContribution'),
-                targetWealth: num('targetWealth'),
+                salaryToday: num('salaryToday'),
+                retirementReturn: num('retirementReturn'),
+                inflationRate: num('inflationRate'),
                 annualReturn: num('annualReturn'),
                 rentReceived: num('rentReceived'),
                 rentPaid: num('rentPaid'),
@@ -415,11 +434,16 @@
         }
 
         function buildConfig(type, inp) {
+            // Opção A: vive do rendimento nominal cheio → taxa de retirada = rendimento na aposentadoria.
+            // (A opção B, sustentável, usaria (retirementReturn - inflationRate) aqui.)
+            const withdrawalRate = inp.retirementReturn / 100;
             return {
                 type,
                 currentWealth: inp.currentWealth,
                 monthlyContribution: inp.monthlyContribution,
-                targetWealth: inp.targetWealth,
+                salaryToday: inp.salaryToday,
+                withdrawalRate,
+                inflMonthly: monthlyRate(inp.inflationRate),
                 rInv: monthlyRate(inp.annualReturn),
                 gHouse: monthlyRate(inp.appreciationRate),
                 houseToday: inp.houseToday,
@@ -431,6 +455,12 @@
                 nParcelas: Math.max(1, Math.round(inp.financeTermYears * 12)),
                 extraAmort: inp.extraAmort,
             };
+        }
+
+        // Patrimônio necessário p/ gerar a renda, em valores de hoje (sem correção de inflação).
+        function retirementTargetToday(cfg) {
+            if (cfg.withdrawalRate <= 0) return Infinity;
+            return (cfg.salaryToday * 12) / cfg.withdrawalRate;
         }
 
         // ============================================================
@@ -449,18 +479,23 @@
             let infeasible = false;         // algum mês em que o aporte ficou negativo
             let housePrice = null;          // preço da casa na data da compra
             let purchaseMonth = null;       // mês em que a casa é comprada
+            let minAporte = Infinity;       // menor sobra mensal p/ investir durante o financiamento (C2)
+            let minAporteMonth = null;      // mês em que essa menor sobra ocorre
 
             const houseAt = (m) => cfg.houseToday * Math.pow(1 + cfg.gHouse, m);
 
+            // Patrimônio necessário p/ a renda, corrigido pela inflação até o mês m (alvo móvel).
+            const retirementAt = (m) => retirementTargetToday(cfg) * Math.pow(1 + cfg.inflMonthly, m);
+
             // Alvo de patrimônio investido em cada mês.
             const targetAt = (m) => {
-                if (cfg.type === 'c2') return cfg.targetWealth;                       // casa já comprada; só falta 2M
-                if (cfg.type === 'default') return cfg.targetWealth + houseAt(m) - cfg.saleValue; // vende SP no fim
-                return cfg.targetWealth + houseAt(m);                                 // C1: compra à vista no fim
+                if (cfg.type === 'c2') return retirementAt(m);                        // casa já comprada; só falta a renda
+                if (cfg.type === 'default') return retirementAt(m) + houseAt(m) - cfg.saleValue; // vende SP no fim
+                return retirementAt(m) + houseAt(m);                                  // C1: compra à vista no fim
             };
 
             const reachedAt = (m) => cfg.type === 'c2'
-                ? (wealth >= cfg.targetWealth && debt <= 0.01)
+                ? (wealth >= retirementAt(m) && debt <= 0.01)
                 : (wealth >= targetAt(m));
 
             const snap = (m) => ({
@@ -516,6 +551,8 @@
                     aporte -= (juros + amort);                     // o que foi pro banco não é investido
                     cumInterestPaid += juros;
                     if (debt === 0 && payoffMonth === null) payoffMonth = m;
+                    // Guarda o mês mais apertado (menor sobra) — no SAC costuma ser logo após a compra.
+                    if (aporte < minAporte) { minAporte = aporte; minAporteMonth = m; }
                 }
 
                 if (aporte < 0) infeasible = true;
@@ -535,6 +572,10 @@
                 housePrice = houseAt(m);
             }
 
+            // Salário e patrimônio necessário, corrigidos para a data da aposentadoria.
+            const salaryAtRetirement = reached ? cfg.salaryToday * Math.pow(1 + cfg.inflMonthly, m) : null;
+            const retirementPatrimony = reached ? retirementAt(m) : null;
+
             return {
                 reached,
                 months: reached ? m : Infinity,
@@ -547,6 +588,10 @@
                 infeasible,
                 housePrice,
                 purchaseMonth,
+                minAporte: isFinite(minAporte) ? minAporte : null,
+                minAporteMonth,
+                salaryAtRetirement,
+                retirementPatrimony,
             };
         }
 
@@ -624,11 +669,14 @@
 
             drawEvolutionChart(labels, datasets);
 
-            // Aviso de inviabilidade
+            // Aviso de inviabilidade — diz o mês mais apertado e de quanto é o rombo.
             const warn = document.getElementById('warnBox');
-            if (res.infeasible) {
+            if (res.infeasible && res.minAporteMonth != null) {
+                const avail = inp.monthlyContribution + (inp.rentPaid - inp.rentReceived);
+                const outflow = avail - res.minAporte;  // parcela + amortização extra naquele mês
+                const deficit = -res.minAporte;
                 warn.style.display = 'block';
-                warn.innerHTML = '⚠️ Neste cenário, em algum mês a parcela + amortização extra ficam maiores do que o dinheiro disponível (aporte negativo). Na prática você precisaria reduzir a amortização extra, aumentar a renda/aporte, ou alongar o prazo.';
+                warn.innerHTML = `⚠️ O mês mais apertado é <strong>${dateFromStart(res.minAporteMonth)}</strong>, logo após a compra: a parcela + amortização extra somam <strong>${formatCurrency(outflow)}</strong>, mas a renda disponível é só <strong>${formatCurrency(avail)}</strong> — faltam <strong>${formatCurrency(deficit)}</strong>/mês. No SAC os juros são maiores no início, então o aperto é sempre no começo e vai aliviando depois. Pra resolver: reduza a amortização extra, alongue o prazo, aumente o aporte, ou venda/compre mais cedo (casa mais barata = financiamento menor).`;
             } else {
                 warn.style.display = 'none';
             }
@@ -641,12 +689,14 @@
             stats.push(statHTML(res.reached ? dateFromStart(res.months) : '—', 'Data do objetivo'));
             stats.push(statHTML(res.housePrice ? formatCurrency(res.housePrice) : '—', 'Casa na compra' + (res.purchaseMonth != null ? ' (' + dateFromStart(res.purchaseMonth) + ')' : ''), true));
 
+            // Meta por salário — corrigida pra data da aposentadoria deste cenário.
+            stats.push(statHTML(res.salaryAtRetirement ? formatCurrency(res.salaryAtRetirement) : '—', 'Salário na aposentadoria'));
+            stats.push(statHTML(res.retirementPatrimony ? formatCurrency(res.retirementPatrimony) : '—', 'Patrimônio p/ a renda'));
+
             if (scenario === 'default') {
                 stats.push(statHTML(formatCurrency(inp.monthlyContribution), 'Aporte mensal'));
-                stats.push(statHTML(formatCurrency(res.series[res.series.length - 1].target), 'Alvo de investimento no fim'));
             } else if (scenario === 'c1') {
                 stats.push(statHTML(formatCurrency(inp.monthlyContribution - inp.rentReceived), 'Aporte após a venda'));
-                stats.push(statHTML(formatCurrency(res.series[res.series.length - 1].target), 'Alvo (2M + casa) no fim'));
             } else { // c2
                 const parcelaInicial = res.financedOriginal * monthlyRate(inp.financeRate) + res.amortBase;
                 stats.push(statHTML(formatCurrency(res.financedOriginal), 'Valor financiado', true));
@@ -781,6 +831,15 @@
             renderCards(results, inp);
             renderDetail(results[selectedScenario], selectedScenario, inp);
             renderSensitivity(selectedScenario, inp);
+
+            // Referência: patrimônio necessário em valores de hoje (sem correção de inflação).
+            const today = retirementTargetToday(buildConfig('default', inp));
+            const hint = document.getElementById('targetTodayHint');
+            if (inp.retirementReturn <= 0) {
+                hint.innerHTML = '⚠️ O rendimento na aposentadoria precisa ser maior que zero.';
+            } else {
+                hint.innerHTML = `Em valores de hoje, pra ter <strong>${formatCurrency(inp.salaryToday)}/mês</strong> sacando <strong>${inp.retirementReturn}% a.a.</strong> você precisaria de <strong>${formatCurrency(today)}</strong> investidos. Esse alvo é corrigido pela inflação até a data de cada cenário (por isso o número final é maior).`;
+            }
         }
 
         // ============================================================
