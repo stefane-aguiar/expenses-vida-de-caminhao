@@ -721,12 +721,13 @@
             // Amostra a série por ano para o gráfico.
             const lastMonth = isFinite(res.months) ? res.months : res.series[res.series.length - 1].month;
             const yearsToShow = Math.max(1, Math.ceil(lastMonth / 12));
+            const startYear = getStartDate().getFullYear();
             const labels = [], initial = [], contributions = [], sale = [], interest = [], target = [], debt = [];
 
             for (let y = 0; y <= yearsToShow; y++) {
                 const idx = Math.min(y * 12, res.series.length - 1);
                 const s = res.series[idx];
-                labels.push('Ano ' + y);
+                labels.push(['Ano ' + y, String(startYear + y)]); // 2 linhas: "Ano N" e o ano real
                 initial.push(s.initial);
                 contributions.push(Math.max(0, s.contributions));
                 sale.push(s.sale);
