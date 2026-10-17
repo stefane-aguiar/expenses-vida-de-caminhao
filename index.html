@@ -1334,7 +1334,10 @@ async function loadData(){
     buildTotalDinheiro(totalRaw);
     computeInvestValores();
 
-    window.__latestTotalDinheiro = totalDinheiroMonths.length ? totalDinheiroHist[totalDinheiroMonths[totalDinheiroMonths.length-1]] : null;
+    // Patrimônio investido enviado à aba Aposentadoria = soma dos ativos
+    // (mesmo número do card "Patrimônio investido" da aba Investimentos, index.html:1001).
+    const ativosAtuais = investimentos.filter(i => isStatusAtivo(i));
+    window.__latestTotalDinheiro = ativosAtuais.length ? ativosAtuais.reduce((s,i)=>s+i.valor, 0) : null;
     if(typeof trySendAposDefaults === 'function') trySendAposDefaults();
 
     if(monthsSorted.length === 0) throw new Error('Nenhum mês encontrado nos dados.');
