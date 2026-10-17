@@ -74,6 +74,20 @@
 
         .param-hint { font-size: 0.72rem; color: #666; }
 
+        /* Toggle (liga/desliga inflação pós-aposentadoria) */
+        .toggle-container { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+        .toggle-switch {
+            position: relative; width: 50px; height: 26px; flex-shrink: 0;
+            background: rgba(255, 255, 255, 0.1); border-radius: 13px; cursor: pointer; transition: background 0.3s;
+        }
+        .toggle-switch.active { background: rgba(74, 222, 128, 0.6); }
+        .toggle-switch::after {
+            content: ''; position: absolute; top: 3px; left: 3px; width: 20px; height: 20px;
+            background: #fff; border-radius: 50%; transition: transform 0.3s;
+        }
+        .toggle-switch.active::after { transform: translateX(24px); }
+        .toggle-label { color: #ccc; font-size: 0.88rem; }
+
         /* Cards comparativos dos 3 cenários */
         .scenario-cards {
             display: grid;
@@ -243,6 +257,10 @@
                 <span class="param-hint">Focus: IPCA ~5,2% (2026), ~4,3% (2027)</span>
             </div>
         </div>
+        <div class="toggle-container" style="margin-top: 4px;">
+            <div class="toggle-switch" id="inflationToggle" onclick="togglePostInflation()"></div>
+            <span class="toggle-label">📉 Descontar a inflação depois de aposentar (renda sustentável — saca só o rendimento real)</span>
+        </div>
         <p style="color:#93c5fd; font-size:0.82rem; margin-bottom:30px; line-height:1.5;" id="targetTodayHint"></p>
 
         <!-- ===================== IMÓVEL DA ILHA ===================== -->
@@ -359,7 +377,7 @@
             <strong>Default:</strong> mantém o apê de SP alugado (segue recebendo o aluguel), investe o aporte cheio, e no fim vende o apê pra ajudar a comprar a casa. Objetivo = investimentos ≥ patrimônio p/ a renda + preço da casa na data − valor da venda de SP.<br>
             <strong>Cenário 1:</strong> vende SP na data escolhida (o valor entra nos investimentos e o aporte cai, porque perde o aluguel recebido), junta até o patrimônio p/ a renda + preço da casa, e compra à vista no fim.<br>
             <strong>Cenário 2:</strong> vende SP e compra a casa já — a venda vira entrada e o resto é financiado (SAC). Para de pagar aluguel (aporte sobe 1.400), mas paga a parcela. Objetivo = investimentos ≥ patrimônio p/ a renda <em>e</em> financiamento quitado.<br><br>
-            <span style="color:#fdba74;">O preço da casa na Ilha também cresce com o tempo (valorização). Juros sempre compostos: taxa mensal = (1 + taxa anual)^(1/12) − 1. Modo de retirada atual: saque do rendimento nominal cheio (opção A).</span>
+            <span style="color:#fdba74;">O preço da casa na Ilha também cresce com o tempo (valorização). Juros sempre compostos: taxa mensal = (1 + taxa anual)^(1/12) − 1.<br>O toggle "descontar a inflação depois de aposentar" alterna a taxa de retirada entre o rendimento nominal cheio (poder de compra cai) e o rendimento real = rendimento − inflação (renda sustentável, exige mais patrimônio).</span>
         </div>
     </div>
 
@@ -372,6 +390,13 @@
 
         let selectedScenario = 'c1';
         let evolutionChart;
+        let considerPostInflation = false; // toggle: descontar inflação pós-aposentadoria
+
+        function togglePostInflation() {
+            considerPostInflation = !considerPostInflation;
+            document.getElementById('inflationToggle').classList.toggle('active', considerPostInflation);
+            updateAll();
+        }
 
         // Taxa mensal equivalente a uma taxa anual, em juros compostos.
         function monthlyRate(annualPct) { return Math.pow(1 + annualPct / 100, 1 / 12) - 1; }
@@ -434,9 +459,12 @@
         }
 
         function buildConfig(type, inp) {
-            // Opção A: vive do rendimento nominal cheio → taxa de retirada = rendimento na aposentadoria.
-            // (A opção B, sustentável, usaria (retirementReturn - inflationRate) aqui.)
-            const withdrawalRate = inp.retirementReturn / 100;
+            // Taxa de retirada:
+            //  - toggle OFF (opção A): saca o rendimento nominal cheio.
+            //  - toggle ON  (opção B): desconta a inflação → saca só o rendimento real (sustentável).
+            const withdrawalRate = considerPostInflation
+                ? (inp.retirementReturn - inp.inflationRate) / 100
+                : inp.retirementReturn / 100;
             return {
                 type,
                 currentWealth: inp.currentWealth,
@@ -833,12 +861,19 @@
             renderSensitivity(selectedScenario, inp);
 
             // Referência: patrimônio necessário em valores de hoje (sem correção de inflação).
-            const today = retirementTargetToday(buildConfig('default', inp));
+            const cfgRef = buildConfig('default', inp);
+            const today = retirementTargetToday(cfgRef);
             const hint = document.getElementById('targetTodayHint');
-            if (inp.retirementReturn <= 0) {
-                hint.innerHTML = '⚠️ O rendimento na aposentadoria precisa ser maior que zero.';
+            const effectiveRate = considerPostInflation ? (inp.retirementReturn - inp.inflationRate) : inp.retirementReturn;
+            if (effectiveRate <= 0) {
+                hint.innerHTML = considerPostInflation
+                    ? '⚠️ No modo sustentável, o rendimento na aposentadoria precisa ser maior que a inflação (senão o patrimônio necessário é infinito).'
+                    : '⚠️ O rendimento na aposentadoria precisa ser maior que zero.';
             } else {
-                hint.innerHTML = `Em valores de hoje, pra ter <strong>${formatCurrency(inp.salaryToday)}/mês</strong> sacando <strong>${inp.retirementReturn}% a.a.</strong> você precisaria de <strong>${formatCurrency(today)}</strong> investidos. Esse alvo é corrigido pela inflação até a data de cada cenário (por isso o número final é maior).`;
+                const modo = considerPostInflation
+                    ? `sacando o rendimento <strong>real</strong> (${inp.retirementReturn}% − ${inp.inflationRate}% = <strong>${effectiveRate.toFixed(1)}% a.a.</strong>, poder de compra preservado)`
+                    : `sacando <strong>${inp.retirementReturn}% a.a.</strong> (nominal — o poder de compra vai caindo ao longo da aposentadoria)`;
+                hint.innerHTML = `Em valores de hoje, pra ter <strong>${formatCurrency(inp.salaryToday)}/mês</strong> ${modo}, você precisaria de <strong>${formatCurrency(today)}</strong> investidos. Esse alvo é corrigido pela inflação até a data de cada cenário.`;
             }
         }
 
