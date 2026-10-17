@@ -91,7 +91,7 @@
         /* Cards comparativos dos 3 cenários */
         .scenario-cards {
             display: grid;
-            grid-template-columns: repeat(3, 1fr);
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
             gap: 16px;
             margin-bottom: 30px;
         }
@@ -341,6 +341,14 @@
                 <div class="house" id="house-c2"></div>
                 <div class="note" id="note-c2"></div>
             </div>
+            <div class="scenario-card" id="card-c3">
+                <h4>Cenário 3 — Vende e paga à vista</h4>
+                <div class="tag">Vende SP e completa com o investido: casa quitada na hora, sem dívida, e rejunta a renda</div>
+                <div class="big" id="years-c3">—</div>
+                <div class="date" id="date-c3">—</div>
+                <div class="house" id="house-c3"></div>
+                <div class="note" id="note-c3"></div>
+            </div>
         </div>
 
         <!-- ===================== PANORAMA DO PATRIMÔNIO ===================== -->
@@ -360,7 +368,7 @@
                 <tbody id="panoramaBody"></tbody>
             </table>
             <p style="color: #666; font-size: 0.78rem; margin-top: 14px; line-height: 1.5;">
-                A casa é mostrada pelo valor de compra. No Cenário 2, como a compra é no início, a casa continua valorizando depois — então na prática ela já vale mais do que esse valor quando você atinge o objetivo.
+                A casa é mostrada pelo valor de compra. Nos Cenários 2 e 3, como a compra é no início, a casa continua valorizando depois — então na prática ela já vale mais do que esse valor quando você atinge o objetivo.
             </p>
         </div>
 
@@ -371,6 +379,7 @@
                 <div class="tab" data-scenario="default" onclick="selectScenario('default')">Default</div>
                 <div class="tab active" data-scenario="c1" onclick="selectScenario('c1')">Cenário 1</div>
                 <div class="tab" data-scenario="c2" onclick="selectScenario('c2')">Cenário 2</div>
+                <div class="tab" data-scenario="c3" onclick="selectScenario('c3')">Cenário 3</div>
             </div>
 
             <div class="detail-stats" id="detailStats"></div>
@@ -397,7 +406,8 @@
             <strong>Como cada cenário funciona:</strong><br>
             <strong>Default:</strong> mantém o apê de SP alugado (segue recebendo o aluguel), investe o aporte cheio, e no fim vende o apê pra ajudar a comprar a casa. Objetivo = investimentos ≥ patrimônio p/ a renda + preço da casa na data − valor da venda de SP.<br>
             <strong>Cenário 1:</strong> vende SP na data escolhida (o valor entra nos investimentos e o aporte cai, porque perde o aluguel recebido), junta até o patrimônio p/ a renda + preço da casa, e compra à vista no fim.<br>
-            <strong>Cenário 2:</strong> vende SP e compra a casa já — a venda vira entrada e o resto é financiado (SAC). Para de pagar aluguel (aporte sobe 1.400), mas paga a parcela. Objetivo = investimentos ≥ patrimônio p/ a renda <em>e</em> financiamento quitado.<br><br>
+            <strong>Cenário 2:</strong> vende SP e compra a casa já — a venda vira entrada e o resto é financiado (SAC). Para de pagar aluguel (aporte sobe 1.400), mas paga a parcela. Objetivo = investimentos ≥ patrimônio p/ a renda <em>e</em> financiamento quitado.<br>
+            <strong>Cenário 3:</strong> vende SP e compra a casa à vista — a venda mais o que falta sai do patrimônio investido (que cai de uma vez). Sem dívida. Objetivo = rejuntar os investimentos ≥ patrimônio p/ a renda. Se o investido não cobrir o preço da casa na data, o cenário fica inviável e avisa.<br><br>
             <span style="color:#fdba74;">O preço da casa na Ilha também cresce com o tempo (valorização). Juros sempre compostos: taxa mensal = (1 + taxa anual)^(1/12) − 1.<br>O toggle "descontar a inflação depois de aposentar" alterna a taxa de retirada entre o rendimento nominal cheio (poder de compra cai) e o rendimento real = rendimento − inflação (renda sustentável, exige mais patrimônio).</span>
         </div>
     </div>
@@ -530,6 +540,10 @@
             let purchaseMonth = null;       // mês em que a casa é comprada
             let minAporte = Infinity;       // menor sobra mensal p/ investir durante o financiamento (C2)
             let minAporteMonth = null;      // mês em que essa menor sobra ocorre
+            let gapFromInvest = null;       // quanto saiu do investido p/ quitar a casa (C3)
+            let wealthAfterBuy = null;      // investido logo após comprar à vista (C3)
+            let cannotAfford = false;       // C3: não tinha investido suficiente p/ pagar à vista
+            let cannotAffordData = null;    // { month, price, gap, have } quando não dá pra comprar
 
             const houseAt = (m) => cfg.houseToday * Math.pow(1 + cfg.gHouse, m);
 
@@ -538,11 +552,12 @@
 
             // Alvo de patrimônio investido em cada mês.
             const targetAt = (m) => {
-                if (cfg.type === 'c2') return retirementAt(m);                        // casa já comprada; só falta a renda
+                if (cfg.type === 'c2' || cfg.type === 'c3') return retirementAt(m);    // casa já comprada; só falta a renda
                 if (cfg.type === 'default') return retirementAt(m) + houseAt(m) - cfg.saleValue; // vende SP no fim
                 return retirementAt(m) + houseAt(m);                                  // C1: compra à vista no fim
             };
 
+            // C2 ainda tem dívida; C3 compra à vista (sem dívida); default/C1 compram no fim.
             const reachedAt = (m) => cfg.type === 'c2'
                 ? (wealth >= retirementAt(m) && debt <= 0.01)
                 : (wealth >= targetAt(m));
@@ -559,18 +574,31 @@
             });
 
             // Evento de venda/compra no mês `m` (muta as variáveis acima via closure).
-            const hasSale = (cfg.type === 'c1' || cfg.type === 'c2');
+            const hasSale = (cfg.type === 'c1' || cfg.type === 'c2' || cfg.type === 'c3');
             const applySaleEvent = (m) => {
                 if (cfg.type === 'c1') {
                     wealth += cfg.saleValue;          // dinheiro da venda vai todo pros investimentos
                     cumSale += cfg.saleValue;
-                } else { // c2: compra a casa agora
+                } else if (cfg.type === 'c2') { // compra financiando a diferença
                     const price = houseAt(m);
                     financedOriginal = Math.max(0, price - cfg.saleValue); // entrada = valor da venda
                     debt = financedOriginal;
                     amortBase = financedOriginal / cfg.nParcelas;
                     housePrice = price;
                     purchaseMonth = m;
+                } else { // c3: paga à vista — entrada (venda) + o resto tirado do investido
+                    const price = houseAt(m);
+                    const gap = Math.max(0, price - cfg.saleValue);
+                    if (gap > wealth) {               // não tem investido suficiente pra quitar
+                        cannotAfford = true;
+                        cannotAffordData = { month: m, price, gap, have: wealth };
+                        return;
+                    }
+                    gapFromInvest = gap;
+                    wealth -= gap;                    // tira do patrimônio investido
+                    housePrice = price;
+                    purchaseMonth = m;
+                    wealthAfterBuy = wealth;
                 }
             };
 
@@ -581,18 +609,19 @@
             const series = [snap(0)];
             let reached = reachedAt(0);
 
-            while (!reached && m < maxMonths) {
+            while (!reached && !cannotAfford && m < maxMonths) {
                 m++;
 
                 // --- evento de venda/compra no mês escolhido ---
                 if (hasSale && m === cfg.monthsUntilSale) applySaleEvent(m);
+                if (cannotAfford) break;
 
                 // --- dinheiro livre do mês p/ investir ---
                 let aporte = cfg.monthlyContribution;
                 if (cfg.type === 'c1' && m >= cfg.monthsUntilSale) {
                     aporte -= cfg.rentReceived;                    // vendeu SP: perde o aluguel recebido
                 }
-                if (cfg.type === 'c2' && m >= cfg.monthsUntilSale) {
+                if ((cfg.type === 'c2' || cfg.type === 'c3') && m >= cfg.monthsUntilSale) {
                     aporte += (cfg.rentPaid - cfg.rentReceived);   // comprou: para de pagar aluguel e de receber
                 }
 
@@ -621,8 +650,8 @@
             }
 
             // No Default e no C1 a casa é comprada no fim (quando o objetivo é atingido),
-            // já valorizada por todo esse tempo.
-            if (cfg.type !== 'c2' && reached) {
+            // já valorizada por todo esse tempo. (C2 e C3 já compraram na data da venda.)
+            if ((cfg.type === 'default' || cfg.type === 'c1') && reached) {
                 purchaseMonth = m;
                 housePrice = houseAt(m);
             }
@@ -647,6 +676,10 @@
                 minAporteMonth,
                 salaryAtRetirement,
                 retirementPatrimony,
+                gapFromInvest,
+                wealthAfterBuy,
+                cannotAfford,
+                cannotAffordData,
             };
         }
 
@@ -667,6 +700,17 @@
             if (c2.payoffMonth) note2 += ` Quita a dívida em ${(c2.payoffMonth / 12).toFixed(1)} anos.`;
             if (c2.infeasible) note2 += ` ⚠️ Em algum mês a parcela supera a renda disponível.`;
             setCard('c2', c2, note2);
+
+            // Cenário 3: paga à vista tirando do investido
+            const c3 = results.c3;
+            let note3;
+            if (c3.cannotAfford) {
+                const d = c3.cannotAffordData;
+                note3 = `⚠️ Em ${dateFromStart(d.month)} a casa custa ${formatCurrency(d.price)}, mas você só tem ${formatCurrency(d.have)} investidos — não dá pra pagar à vista.`;
+            } else {
+                note3 = `Vende SP em ${monthsSale} e tira ${formatCurrency(c3.gapFromInvest)} do investido pra quitar a casa. Sem dívida; rejunta a renda.`;
+            }
+            setCard('c3', c3, note3);
         }
 
         // Panorama final: investido (gera renda) + casa (valor de compra) = patrimônio total.
@@ -675,6 +719,7 @@
                 { key: 'default', label: 'Default', r: results.default },
                 { key: 'c1', label: 'Cenário 1', r: results.c1 },
                 { key: 'c2', label: 'Cenário 2', r: results.c2 },
+                { key: 'c3', label: 'Cenário 3', r: results.c3 },
             ];
             const body = document.getElementById('panoramaBody');
             body.innerHTML = '';
@@ -695,8 +740,10 @@
         }
 
         function setCard(key, res, note) {
-            document.getElementById('years-' + key).textContent = fmtYears(res.years);
-            document.getElementById('date-' + key).textContent = res.reached ? 'Meta em ' + dateFromStart(res.months) : 'Não atingível';
+            document.getElementById('years-' + key).textContent = res.cannotAfford ? 'inviável' : fmtYears(res.years);
+            document.getElementById('date-' + key).textContent = res.cannotAfford
+                ? 'Não dá pra comprar à vista'
+                : (res.reached ? 'Meta em ' + dateFromStart(res.months) : 'Não atingível');
             document.getElementById('house-' + key).textContent = res.housePrice
                 ? `🏠 Casa: ${formatCurrency(res.housePrice)} em ${dateFromStart(res.purchaseMonth)}`
                 : '';
@@ -722,7 +769,7 @@
             const lastMonth = isFinite(res.months) ? res.months : res.series[res.series.length - 1].month;
             const yearsToShow = Math.max(1, Math.ceil(lastMonth / 12));
             const startYear = getStartDate().getFullYear();
-            const labels = [], initial = [], contributions = [], sale = [], interest = [], target = [], debt = [];
+            const labels = [], initial = [], contributions = [], sale = [], interest = [], target = [], debt = [], wealth = [];
 
             for (let y = 0; y <= yearsToShow; y++) {
                 const idx = Math.min(y * 12, res.series.length - 1);
@@ -734,25 +781,37 @@
                 interest.push(s.interest);
                 target.push(s.target);
                 debt.push(s.debt);
+                wealth.push(s.wealth);
             }
 
-            const datasets = [
-                barDS('Patrimônio inicial', initial, 'rgba(139, 92, 246, 0.8)'),
-                barDS('Aportes', contributions, 'rgba(59, 130, 246, 0.8)'),
-            ];
-            if (scenario === 'c1') datasets.push(barDS('Venda de SP', sale, 'rgba(249, 115, 22, 0.8)'));
-            datasets.push(barDS('Rendimentos', interest, 'rgba(74, 222, 128, 0.8)'));
-
-            // Linha da meta (móvel no default/C1, fixa no C2)
-            datasets.push(lineDS('Meta', target, 'rgba(251, 191, 36, 0.9)', 'meta'));
-            // Linha da dívida (só C2)
-            if (scenario === 'c2') datasets.push(lineDS('Saldo devedor', debt, 'rgba(239, 68, 68, 0.9)', 'debt'));
+            let datasets;
+            if (scenario === 'c3') {
+                // C3 tira um pedação do investido pra comprar; a decomposição em fatias
+                // distorceria (o saque não é uma "fonte"), então mostro o patrimônio total.
+                datasets = [
+                    barDS('Patrimônio investido', wealth, 'rgba(74, 222, 128, 0.8)'),
+                    lineDS('Meta', target, 'rgba(251, 191, 36, 0.9)', 'meta'),
+                ];
+            } else {
+                datasets = [
+                    barDS('Patrimônio inicial', initial, 'rgba(139, 92, 246, 0.8)'),
+                    barDS('Aportes', contributions, 'rgba(59, 130, 246, 0.8)'),
+                ];
+                if (scenario === 'c1') datasets.push(barDS('Venda de SP', sale, 'rgba(249, 115, 22, 0.8)'));
+                datasets.push(barDS('Rendimentos', interest, 'rgba(74, 222, 128, 0.8)'));
+                datasets.push(lineDS('Meta', target, 'rgba(251, 191, 36, 0.9)', 'meta'));
+                if (scenario === 'c2') datasets.push(lineDS('Saldo devedor', debt, 'rgba(239, 68, 68, 0.9)', 'debt'));
+            }
 
             drawEvolutionChart(labels, datasets);
 
-            // Aviso de inviabilidade — diz o mês mais apertado e de quanto é o rombo.
+            // Avisos
             const warn = document.getElementById('warnBox');
-            if (res.infeasible && res.minAporteMonth != null) {
+            if (scenario === 'c3' && res.cannotAfford) {
+                const d = res.cannotAffordData;
+                warn.style.display = 'block';
+                warn.innerHTML = `⚠️ No mês da compra (<strong>${dateFromStart(d.month)}</strong>) a casa custa <strong>${formatCurrency(d.price)}</strong>, mas você só tem <strong>${formatCurrency(d.have)}</strong> investidos — faltam <strong>${formatCurrency(d.gap - d.have)}</strong> pra pagar à vista. Opções: vender/comprar mais tarde (mais tempo juntando), escolher uma casa mais barata, ou usar o Cenário 2 (financiar a diferença).`;
+            } else if (res.infeasible && res.minAporteMonth != null) {
                 const avail = inp.monthlyContribution + (inp.rentPaid - inp.rentReceived);
                 const outflow = avail - res.minAporte;  // parcela + amortização extra naquele mês
                 const deficit = -res.minAporte;
@@ -766,7 +825,7 @@
         function renderDetailStats(res, scenario, inp) {
             const el = document.getElementById('detailStats');
             const stats = [];
-            stats.push(statHTML(fmtYears(res.years), 'Tempo até o objetivo'));
+            stats.push(statHTML(res.cannotAfford ? 'inviável' : fmtYears(res.years), 'Tempo até o objetivo'));
             stats.push(statHTML(res.reached ? dateFromStart(res.months) : '—', 'Data do objetivo'));
             stats.push(statHTML(res.housePrice ? formatCurrency(res.housePrice) : '—', 'Casa na compra' + (res.purchaseMonth != null ? ' (' + dateFromStart(res.purchaseMonth) + ')' : ''), true));
 
@@ -778,12 +837,15 @@
                 stats.push(statHTML(formatCurrency(inp.monthlyContribution), 'Aporte mensal'));
             } else if (scenario === 'c1') {
                 stats.push(statHTML(formatCurrency(inp.monthlyContribution - inp.rentReceived), 'Aporte após a venda'));
-            } else { // c2
+            } else if (scenario === 'c2') {
                 const parcelaInicial = res.financedOriginal * monthlyRate(inp.financeRate) + res.amortBase;
                 stats.push(statHTML(formatCurrency(res.financedOriginal), 'Valor financiado', true));
                 stats.push(statHTML(formatCurrency(parcelaInicial + inp.extraAmort), '1ª parcela (c/ extra)', true));
                 stats.push(statHTML(res.payoffMonth ? (res.payoffMonth / 12).toFixed(1) + ' anos' : '—', 'Quitação da dívida', true));
                 stats.push(statHTML(formatCurrency(res.cumInterestPaid), 'Juros totais pagos', true));
+            } else { // c3
+                stats.push(statHTML(res.gapFromInvest != null ? formatCurrency(res.gapFromInvest) : '—', 'Tirado do investido', true));
+                stats.push(statHTML(res.wealthAfterBuy != null ? formatCurrency(res.wealthAfterBuy) : '—', 'Investido após comprar', true));
             }
             el.innerHTML = stats.join('');
         }
