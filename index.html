@@ -428,6 +428,29 @@
         </table>
         </div>
 
+        <h2 style="margin-top:28px;">🔬 Detalhe por tipo e rendimento</h2>
+        <span class="hint">combine os dois filtros pra ver uma fatia específica da carteira (o segundo filtro se ajusta ao tipo escolhido)</span>
+        <div class="row-controls" style="margin-bottom:6px;">
+          <div class="field">
+            <label for="investDetalheTipoSelect">Tipo de investimento</label>
+            <select id="investDetalheTipoSelect"></select>
+          </div>
+          <div class="field">
+            <label for="investDetalheRendSelect">Tipo de rendimento</label>
+            <select id="investDetalheRendSelect"></select>
+          </div>
+        </div>
+        <div style="overflow-x:auto;">
+        <table class="compact">
+          <thead><tr>
+            <th>Nome do investimento</th><th style="text-align:center;">Rentabilidade líq. atual</th><th>Rendimento contratado</th>
+            <th style="text-align:right;">Valor inicial</th><th style="text-align:right;">Valor atual</th><th>Liquidez</th><th>Data início</th><th>Data fim</th>
+          </tr></thead>
+          <tbody id="investDetalheTableBody"></tbody>
+          <tfoot id="investDetalheTableFoot"></tfoot>
+        </table>
+        </div>
+
         <h2 style="margin-top:28px;">⚠️ FGC: onde está o dinheiro</h2>
         <span class="hint">apenas investimentos marcados com "Tem FGC" · agrupado por instituição emissora, não pela corretora</span>
         <div class="chart-box tall"><canvas id="fgcChart"></canvas></div>
@@ -928,6 +951,81 @@ function renderVencendoTable(ativos){
     </tr>`).join('') : `<tr><td colspan="10" style="text-align:center;color:var(--ink-dim);">☑️ Nenhum investimento vencendo nos próximos 6 meses.</td></tr>`;
 }
 
+// Tabela com dois filtros em cascata: tipo de investimento e tipo de rendimento.
+function setupInvestDetalheFilters(ativos){
+  const ALL = 'Todos';
+  const tipoSel = document.getElementById('investDetalheTipoSelect');
+  const rendSel = document.getElementById('investDetalheRendSelect');
+
+  const optsFrom = (sel, values, keep) => {
+    const all = [ALL, ...values];
+    sel.innerHTML = '';
+    all.forEach(v => { const o=document.createElement('option'); o.value=v; o.textContent=v; sel.appendChild(o); });
+    sel.value = all.includes(keep) ? keep : ALL;
+  };
+
+  const fillTipos = () => {
+    const tipos = Array.from(new Set(ativos.map(i => i.tipo || 'Não informado'))).sort();
+    optsFrom(tipoSel, tipos, tipoSel.value);
+  };
+
+  // O segundo filtro só mostra os rendimentos que existem dentro do tipo escolhido.
+  const fillRendimentos = () => {
+    const tipo = tipoSel.value;
+    const pool = ativos.filter(i => tipo === ALL || (i.tipo || 'Não informado') === tipo);
+    const rends = Array.from(new Set(pool.map(i => i.tipoRendimento || 'Não informado'))).sort();
+    optsFrom(rendSel, rends, rendSel.value);
+  };
+
+  const render = () => {
+    const tipo = tipoSel.value, rend = rendSel.value;
+    const filtered = ativos
+      .filter(i => (tipo === ALL || (i.tipo || 'Não informado') === tipo)
+                && (rend === ALL || (i.tipoRendimento || 'Não informado') === rend))
+      .slice().sort((a,b) => (b.rentabilidadeAtual ?? -Infinity) - (a.rentabilidadeAtual ?? -Infinity));
+
+    const body = document.getElementById('investDetalheTableBody');
+    const foot = document.getElementById('investDetalheTableFoot');
+
+    if(!filtered.length){
+      body.innerHTML = `<tr><td colspan="8" style="text-align:center;color:var(--ink-dim);">Nenhum investimento ativo nesse grupo.</td></tr>`;
+      foot.innerHTML = '';
+      return;
+    }
+
+    body.innerHTML = filtered.map(inv => `
+      <tr>
+        <td>${inv.nome || '(sem nome)'}</td>
+        <td style="text-align:center;">${inv.rentabilidadeAtual !== null && inv.rentabilidadeAtual !== undefined ? inv.rentabilidadeAtual.toFixed(2).replace('.',',')+'%' : '—'}</td>
+        <td>${inv.rendContratado != null ? inv.rendContratado.toFixed(2).replace('.',',')+'%' : '—'}</td>
+        <td class="val">${fmtBRL(inv.valorInicial)}</td>
+        <td class="val">${fmtBRL(inv.valor)}</td>
+        <td>${inv.liquidez || '—'}</td>
+        <td>${inv.dataInicioRaw || '—'}</td>
+        <td>${inv.dataFimRaw || '—'}</td>
+      </tr>`).join('');
+
+    const totalCarteira = ativos.reduce((s,i)=>s+i.valor, 0);
+    const somaInicial = filtered.reduce((s,i)=>s+i.valorInicial, 0);
+    const somaAtual = filtered.reduce((s,i)=>s+i.valor, 0);
+    const pct = totalCarteira ? (somaAtual / totalCarteira * 100) : 0;
+    foot.innerHTML = `
+      <tr style="font-weight:600;border-top:2px solid var(--line);">
+        <td>${filtered.length} ativo(s) • ${pct.toFixed(1).replace('.',',')}% da carteira</td>
+        <td></td><td></td>
+        <td class="val">${fmtBRL(somaInicial)}</td>
+        <td class="val">${fmtBRL(somaAtual)}</td>
+        <td></td><td></td><td></td>
+      </tr>`;
+  };
+
+  tipoSel.onchange = () => { fillRendimentos(); render(); };
+  rendSel.onchange = render;
+  fillTipos();
+  fillRendimentos();
+  render();
+}
+
 function buildInvestRangeSelectors(){
   const from = document.getElementById('investFromSelect');
   const to = document.getElementById('investToSelect');
@@ -996,6 +1094,7 @@ function renderInvestTab(){
 
   setupInvestZoomFilters(ativos);
   renderVencendoTable(ativos);
+  setupInvestDetalheFilters(ativos);
 
   // total em investimentos ativos + liquidez diária
   const totalInvestido = ativos.reduce((s,i)=>s+i.valor, 0);
