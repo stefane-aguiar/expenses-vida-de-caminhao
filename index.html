@@ -2081,6 +2081,8 @@ function trySendAposDefaults(){
       iframe.style.height = '1500px'; // fallback se por algum motivo não der pra acessar o conteúdo
     }
   });
+  // cache-busting: recarrega sempre a versão mais recente da aba (evita iframe preso em cache)
+  iframe.src = 'aposentadoria.html?v=' + Date.now();
 })();
 </script>
 </body>
