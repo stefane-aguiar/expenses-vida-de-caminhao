@@ -558,28 +558,34 @@
                 target: targetAt(m),
             });
 
-            const series = [snap(0)];
+            // Evento de venda/compra no mês `m` (muta as variáveis acima via closure).
+            const hasSale = (cfg.type === 'c1' || cfg.type === 'c2');
+            const applySaleEvent = (m) => {
+                if (cfg.type === 'c1') {
+                    wealth += cfg.saleValue;          // dinheiro da venda vai todo pros investimentos
+                    cumSale += cfg.saleValue;
+                } else { // c2: compra a casa agora
+                    const price = houseAt(m);
+                    financedOriginal = Math.max(0, price - cfg.saleValue); // entrada = valor da venda
+                    debt = financedOriginal;
+                    amortBase = financedOriginal / cfg.nParcelas;
+                    housePrice = price;
+                    purchaseMonth = m;
+                }
+            };
+
             let m = 0;
+            // Venda/compra "agora" (mês 0): aplica antes de tirar o snapshot inicial.
+            if (hasSale && cfg.monthsUntilSale === 0) applySaleEvent(0);
+
+            const series = [snap(0)];
             let reached = reachedAt(0);
 
             while (!reached && m < maxMonths) {
                 m++;
 
                 // --- evento de venda/compra no mês escolhido ---
-                const hasSale = (cfg.type === 'c1' || cfg.type === 'c2');
-                if (hasSale && m === cfg.monthsUntilSale) {
-                    if (cfg.type === 'c1') {
-                        wealth += cfg.saleValue;      // dinheiro da venda vai todo pros investimentos
-                        cumSale += cfg.saleValue;
-                    } else { // c2: compra a casa agora
-                        const price = houseAt(m);
-                        financedOriginal = Math.max(0, price - cfg.saleValue); // entrada = valor da venda
-                        debt = financedOriginal;
-                        amortBase = financedOriginal / cfg.nParcelas;
-                        housePrice = price;
-                        purchaseMonth = m;
-                    }
-                }
+                if (hasSale && m === cfg.monthsUntilSale) applySaleEvent(m);
 
                 // --- dinheiro livre do mês p/ investir ---
                 let aporte = cfg.monthlyContribution;
