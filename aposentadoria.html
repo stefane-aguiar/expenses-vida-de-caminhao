@@ -343,6 +343,27 @@
             </div>
         </div>
 
+        <!-- ===================== PANORAMA DO PATRIMÔNIO ===================== -->
+        <div class="chart-container">
+            <h3 style="margin-bottom: 8px; color: #fff;">💰 Panorama do patrimônio ao atingir o objetivo</h3>
+            <p style="color: #888; font-size: 0.85rem; margin-bottom: 20px;">O que você terá quando bater a meta: o patrimônio <strong>investido</strong> (que gera sua renda) e a <strong>casa</strong> (patrimônio imobilizado). A soma é o seu patrimônio total.</p>
+            <table class="data-table">
+                <thead>
+                    <tr>
+                        <th>Cenário</th>
+                        <th>Tempo</th>
+                        <th>Investido (gera renda)</th>
+                        <th>Casa (valor de compra)</th>
+                        <th>Patrimônio total</th>
+                    </tr>
+                </thead>
+                <tbody id="panoramaBody"></tbody>
+            </table>
+            <p style="color: #666; font-size: 0.78rem; margin-top: 14px; line-height: 1.5;">
+                A casa é mostrada pelo valor de compra. No Cenário 2, como a compra é no início, a casa continua valorizando depois — então na prática ela já vale mais do que esse valor quando você atinge o objetivo.
+            </p>
+        </div>
+
         <!-- ===================== DETALHE DO CENÁRIO ===================== -->
         <div class="chart-container">
             <h3 style="margin-bottom: 16px; color: #fff;">📈 Detalhe do cenário</h3>
@@ -642,6 +663,31 @@
             setCard('c2', c2, note2);
         }
 
+        // Panorama final: investido (gera renda) + casa (valor de compra) = patrimônio total.
+        function renderPanorama(results) {
+            const rows = [
+                { key: 'default', label: 'Default', r: results.default },
+                { key: 'c1', label: 'Cenário 1', r: results.c1 },
+                { key: 'c2', label: 'Cenário 2', r: results.c2 },
+            ];
+            const body = document.getElementById('panoramaBody');
+            body.innerHTML = '';
+            rows.forEach(({ key, label, r }) => {
+                const invested = r.retirementPatrimony;
+                const house = r.housePrice;
+                const total = (invested != null && house != null) ? invested + house : null;
+                const tr = document.createElement('tr');
+                if (key === selectedScenario) tr.className = 'highlight-row';
+                tr.innerHTML = `
+                    <td>${label}</td>
+                    <td>${r.reached ? fmtYears(r.years) : '—'}</td>
+                    <td>${invested != null ? formatCurrency(invested) : '—'}</td>
+                    <td>${house != null ? formatCurrency(house) : '—'}</td>
+                    <td><strong>${total != null ? formatCurrency(total) : '—'}</strong></td>`;
+                body.appendChild(tr);
+            });
+        }
+
         function setCard(key, res, note) {
             document.getElementById('years-' + key).textContent = fmtYears(res.years);
             document.getElementById('date-' + key).textContent = res.reached ? 'Meta em ' + dateFromStart(res.months) : 'Não atingível';
@@ -857,6 +903,7 @@
                 c2: simulate(buildConfig('c2', inp)),
             };
             renderCards(results, inp);
+            renderPanorama(results);
             renderDetail(results[selectedScenario], selectedScenario, inp);
             renderSensitivity(selectedScenario, inp);
 
