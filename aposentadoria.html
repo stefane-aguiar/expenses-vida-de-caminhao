@@ -366,7 +366,10 @@
             const sign = value < 0 ? '-' : '';
             const v = Math.abs(value);
             if (v >= 1000000) return sign + 'R$ ' + (v / 1000000).toFixed(2).replace('.', ',') + 'M';
-            if (v >= 1000) return sign + 'R$ ' + (v / 1000).toFixed(0) + 'k';
+            if (v >= 1000) {
+                const k = (v / 1000).toFixed(1).replace(/\.0$/, '').replace('.', ',');
+                return sign + 'R$ ' + k + 'k';
+            }
             return sign + 'R$ ' + v.toFixed(0);
         }
 
