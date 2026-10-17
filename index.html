@@ -413,6 +413,7 @@
             <th>Data início</th><th>Data fim</th><th id="investZoomLastColHeader">Tipo</th>
           </tr></thead>
           <tbody id="investZoomTableBody"></tbody>
+          <tfoot id="investZoomTableFoot"></tfoot>
         </table>
         </div>
 
@@ -921,6 +922,22 @@ function setupInvestZoomFilters(ativos){
         <td>${inv.dataFimRaw || '—'}</td>
         <td>${dim==='tipo' ? inv.tipoRendimento : inv.tipo}</td>
       </tr>`).join('') : `<tr><td colspan="6" style="text-align:center;color:var(--ink-dim);">Nenhum investimento ativo nesse grupo.</td></tr>`;
+
+    const foot = document.getElementById('investZoomTableFoot');
+    if (filtered.length) {
+      const totalCarteira = ativos.reduce((s,i)=>s+i.valor, 0);
+      const somaAtual = filtered.reduce((s,i)=>s+i.valor, 0);
+      const pct = totalCarteira ? (somaAtual / totalCarteira * 100) : 0;
+      foot.innerHTML = `
+        <tr style="font-weight:600;border-top:2px solid var(--line);">
+          <td>${filtered.length} ativo(s) • ${pct.toFixed(1).replace('.',',')}% da carteira</td>
+          <td></td>
+          <td class="val">${fmtBRL(somaAtual)}</td>
+          <td></td><td></td><td></td>
+        </tr>`;
+    } else {
+      foot.innerHTML = '';
+    }
   };
 
   dimSel.onchange = () => { rebuildValueOptions(); render(); };
