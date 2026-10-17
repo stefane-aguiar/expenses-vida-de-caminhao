@@ -6,12 +6,8 @@
     <title>Calculadora FIRE - Independência Financeira</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, sans-serif;
             background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
@@ -19,26 +15,13 @@
             padding: 40px 20px;
             color: #e0e0e0;
         }
-        
-        .container {
-            max-width: 1000px;
-            margin: 0 auto;
-        }
-        
-        h1 {
-            text-align: center;
-            margin-bottom: 10px;
-            font-size: 1.8rem;
-            color: #fff;
-        }
-        
-        .subtitle {
-            text-align: center;
-            color: #888;
-            margin-bottom: 30px;
-            font-size: 0.95rem;
-        }
-        
+
+        .container { max-width: 1000px; margin: 0 auto; }
+
+        h1 { text-align: center; margin-bottom: 10px; font-size: 1.8rem; color: #fff; }
+
+        .subtitle { text-align: center; color: #888; margin-bottom: 30px; font-size: 0.95rem; }
+
         .chart-container {
             background: rgba(255, 255, 255, 0.05);
             border-radius: 16px;
@@ -47,42 +30,30 @@
             backdrop-filter: blur(10px);
             border: 1px solid rgba(255, 255, 255, 0.1);
         }
-        
+
         .parameters {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
             gap: 20px;
-            margin-bottom: 30px;
+            margin-bottom: 20px;
             padding: 20px;
             background: rgba(255, 255, 255, 0.03);
             border-radius: 12px;
         }
-        
-        .parameters-section {
-            margin-bottom: 30px;
-        }
-        
-        .parameters-section h4 {
+
+        .section-title {
             color: #f97316;
-            margin-bottom: 15px;
+            margin: 10px 0 12px;
             font-size: 0.95rem;
             display: flex;
             align-items: center;
             gap: 8px;
         }
-        
-        .param-group {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        
-        .param-group label {
-            font-size: 0.85rem;
-            color: #aaa;
-            font-weight: 500;
-        }
-        
+
+        .param-group { display: flex; flex-direction: column; gap: 8px; }
+
+        .param-group label { font-size: 0.85rem; color: #aaa; font-weight: 500; }
+
         .param-group input, .param-group select {
             padding: 12px 16px;
             border: 1px solid rgba(255, 255, 255, 0.2);
@@ -92,85 +63,84 @@
             font-size: 1rem;
             transition: all 0.3s ease;
         }
-        
+
         .param-group input:focus, .param-group select:focus {
             outline: none;
             border-color: #4ade80;
             box-shadow: 0 0 0 3px rgba(74, 222, 128, 0.1);
         }
-        
-        .param-group select option {
-            background: #1a1a2e;
-            color: #fff;
-        }
-        
-        .highlight-box {
-            background: linear-gradient(135deg, rgba(74, 222, 128, 0.1) 0%, rgba(34, 197, 94, 0.05) 100%);
-            border: 1px solid rgba(74, 222, 128, 0.3);
-            border-radius: 12px;
-            padding: 20px;
+
+        .param-group select option { background: #1a1a2e; color: #fff; }
+
+        .param-hint { font-size: 0.72rem; color: #666; }
+
+        /* Cards comparativos dos 3 cenários */
+        .scenario-cards {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 16px;
             margin-bottom: 30px;
         }
-        
-        .highlight-box h3 {
+
+        .scenario-card {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 14px;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .scenario-card h4 { color: #fff; font-size: 0.95rem; margin-bottom: 4px; }
+        .scenario-card .tag { color: #888; font-size: 0.72rem; margin-bottom: 14px; min-height: 28px; }
+        .scenario-card .big { font-size: 2rem; font-weight: 700; color: #4ade80; line-height: 1; }
+        .scenario-card .date { color: #bbb; font-size: 0.85rem; margin-top: 6px; }
+        .scenario-card .note { color: #93c5fd; font-size: 0.76rem; margin-top: 14px; line-height: 1.5; text-align: left; }
+        .scenario-card.unreachable .big { color: #f97316; }
+
+        @media (max-width: 720px) {
+            .scenario-cards { grid-template-columns: 1fr; }
+        }
+
+        /* Abas para detalhar um cenário */
+        .tabs { display: flex; gap: 8px; margin-bottom: 20px; flex-wrap: wrap; }
+
+        .tab {
+            padding: 10px 16px;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            color: #aaa;
+            cursor: pointer;
+            font-size: 0.85rem;
+            transition: all 0.2s ease;
+        }
+
+        .tab.active {
+            background: rgba(74, 222, 128, 0.15);
+            border-color: rgba(74, 222, 128, 0.5);
             color: #4ade80;
-            margin-bottom: 15px;
-            font-size: 1.1rem;
         }
-        
-        .event-box {
-            background: linear-gradient(135deg, rgba(249, 115, 22, 0.1) 0%, rgba(234, 88, 12, 0.05) 100%);
-            border: 1px solid rgba(249, 115, 22, 0.3);
-            border-radius: 12px;
-            padding: 20px;
-            margin-bottom: 30px;
-        }
-        
-        .event-box h3 {
-            color: #f97316;
-            margin-bottom: 15px;
-            font-size: 1.1rem;
-        }
-        
-        .current-stats {
+
+        .detail-stats {
             display: grid;
             grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
             gap: 15px;
+            margin-bottom: 20px;
         }
-        
-        .stat {
-            text-align: center;
-        }
-        
-        .stat-value {
-            font-size: 1.6rem;
-            font-weight: 700;
-            color: #fff;
-        }
-        
-        .stat-value.highlight-orange {
-            color: #f97316;
-        }
-        
-        .stat-label {
-            font-size: 0.75rem;
-            color: #888;
-            margin-top: 5px;
-        }
-        
-        .data-table {
-            width: 100%;
-            border-collapse: collapse;
-            margin-top: 20px;
-        }
-        
-        .data-table th,
-        .data-table td {
+
+        .stat { text-align: center; }
+        .stat-value { font-size: 1.4rem; font-weight: 700; color: #fff; }
+        .stat-value.orange { color: #f97316; }
+        .stat-label { font-size: 0.75rem; color: #888; margin-top: 5px; }
+
+        .data-table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+
+        .data-table th, .data-table td {
             padding: 12px 16px;
             text-align: center;
             border-bottom: 1px solid rgba(255, 255, 255, 0.1);
         }
-        
+
         .data-table th {
             color: #888;
             font-weight: 600;
@@ -178,20 +148,11 @@
             text-transform: uppercase;
             letter-spacing: 0.5px;
         }
-        
-        .data-table tr:hover {
-            background: rgba(255, 255, 255, 0.03);
-        }
-        
-        .data-table .highlight-row {
-            background: rgba(74, 222, 128, 0.1);
-        }
-        
-        .data-table .highlight-row td {
-            color: #4ade80;
-            font-weight: 600;
-        }
-        
+
+        .data-table tr:hover { background: rgba(255, 255, 255, 0.03); }
+        .data-table .highlight-row { background: rgba(74, 222, 128, 0.1); }
+        .data-table .highlight-row td { color: #4ade80; font-weight: 600; }
+
         .insight {
             background: rgba(59, 130, 246, 0.1);
             border-left: 3px solid #3b82f6;
@@ -199,993 +160,652 @@
             margin-top: 20px;
             border-radius: 0 8px 8px 0;
         }
-        
-        .insight p {
-            color: #93c5fd;
-            font-size: 0.95rem;
-            line-height: 1.6;
+        .insight p { color: #93c5fd; font-size: 0.95rem; line-height: 1.6; }
+
+        .warn-box {
+            background: rgba(249, 115, 22, 0.1);
+            border-left: 3px solid #f97316;
+            padding: 12px 16px;
+            border-radius: 0 8px 8px 0;
+            margin-top: 16px;
+            color: #fdba74;
+            font-size: 0.85rem;
+            line-height: 1.5;
         }
-        
+
         .formula-box {
             background: rgba(139, 92, 246, 0.1);
             border: 1px solid rgba(139, 92, 246, 0.3);
             border-radius: 8px;
-            padding: 15px;
+            padding: 18px 20px;
             margin-top: 20px;
-            font-family: 'Courier New', monospace;
-            font-size: 0.9rem;
-            color: #c4b5fd;
-        }
-        
-        .toggle-container {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            margin-bottom: 15px;
-        }
-        
-        .toggle-switch {
-            position: relative;
-            width: 50px;
-            height: 26px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 13px;
-            cursor: pointer;
-            transition: background 0.3s;
-        }
-        
-        .toggle-switch.active {
-            background: rgba(249, 115, 22, 0.6);
-        }
-        
-        .toggle-switch::after {
-            content: '';
-            position: absolute;
-            top: 3px;
-            left: 3px;
-            width: 20px;
-            height: 20px;
-            background: #fff;
-            border-radius: 50%;
-            transition: transform 0.3s;
-        }
-        
-        .toggle-switch.active::after {
-            transform: translateX(24px);
-        }
-        
-        .toggle-label {
-            color: #aaa;
-            font-size: 0.9rem;
-        }
-        
-        .event-fields {
-            display: none;
-            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-            gap: 20px;
-            margin-top: 15px;
-        }
-        
-        .event-fields.visible {
-            display: grid;
-        }
-        
-        .sale-marker {
-            background: rgba(249, 115, 22, 0.2);
-            border: 2px dashed #f97316;
-            border-radius: 8px;
-            padding: 10px 15px;
-            margin-top: 15px;
             font-size: 0.85rem;
-            color: #fdba74;
+            color: #c4b5fd;
+            line-height: 1.7;
         }
+        .formula-box strong { color: #ddd6fe; }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🔥 Calculadora FIRE</h1>
-        <p class="subtitle">Simulador de Independência Financeira</p>
-        
-        <!-- Parâmetros Básicos -->
+        <p class="subtitle">Quanto tempo até aposentar com casa própria — em 3 cenários</p>
+
+        <!-- ===================== PARÂMETROS GLOBAIS ===================== -->
+        <h3 class="section-title">⚙️ Parâmetros gerais</h3>
         <div class="parameters">
             <div class="param-group">
                 <label>Mês Inicial</label>
-                <select id="startMonth" onchange="updateChart()">
-                    <option value="0" selected>Janeiro</option>
-                    <option value="1">Fevereiro</option>
-                    <option value="2">Março</option>
-                    <option value="3">Abril</option>
-                    <option value="4">Maio</option>
-                    <option value="5">Junho</option>
-                    <option value="6">Julho</option>
-                    <option value="7">Agosto</option>
-                    <option value="8">Setembro</option>
-                    <option value="9">Outubro</option>
-                    <option value="10">Novembro</option>
-                    <option value="11">Dezembro</option>
-                </select>
+                <select id="startMonth" onchange="updateAll()"></select>
             </div>
             <div class="param-group">
                 <label>Ano Inicial</label>
-                <select id="startYear" onchange="updateChart()">
-                    <option value="2025">2025</option>
-                    <option value="2026" selected>2026</option>
-                    <option value="2027">2027</option>
-                </select>
+                <select id="startYear" onchange="updateAll()"></select>
+            </div>
+            <div class="param-group">
+                <label>Patrimônio Investido Atual (R$)</label>
+                <input type="number" id="currentWealth" value="350000" onchange="updateAll()">
             </div>
             <div class="param-group">
                 <label>Aporte Mensal (R$)</label>
-                <input type="number" id="monthlyContribution" value="6000" onchange="updateChart()">
+                <input type="number" id="monthlyContribution" value="6000" onchange="updateAll()">
             </div>
             <div class="param-group">
-                <label>Patrimônio Atual (R$)</label>
-                <input type="number" id="currentWealth" value="260000" onchange="updateChart()">
+                <label>Meta de Aposentadoria (R$)</label>
+                <input type="number" id="targetWealth" value="2000000" onchange="updateAll()">
             </div>
             <div class="param-group">
-                <label>Meta FIRE (R$)</label>
-                <input type="number" id="targetWealth" value="2000000" onchange="updateChart()">
+                <label>Rendimento Investimentos (% a.a.)</label>
+                <input type="number" id="annualReturn" value="12" step="0.5" onchange="updateAll()">
             </div>
             <div class="param-group">
-                <label>Rendimento Anual (%)</label>
-                <input type="number" id="annualReturn" value="12" step="0.5" onchange="updateChart()">
+                <label>Aluguel recebido de SP (R$/mês)</label>
+                <input type="number" id="rentReceived" value="2600" onchange="updateAll()">
+            </div>
+            <div class="param-group">
+                <label>Aluguel pago na Ilha (R$/mês)</label>
+                <input type="number" id="rentPaid" value="4000" onchange="updateAll()">
             </div>
         </div>
-        
-        <!-- Evento: Venda do Apartamento -->
-        <div class="parameters-section">
-            <div class="parameters" style="margin-bottom: 0;">
-                <div style="grid-column: 1 / -1;">
-                    <div class="toggle-container">
-                        <div class="toggle-switch" id="saleToggle" onclick="toggleSaleEvent()"></div>
-                        <span class="toggle-label">🏠 Incluir venda de apartamento no planejamento</span>
-                    </div>
-                    
-                    <div class="event-fields" id="saleFields">
-                        <div class="param-group">
-                            <label>Mês da Venda</label>
-                            <select id="saleMonth" onchange="updateChart()">
-                                <option value="0">Janeiro</option>
-                                <option value="1">Fevereiro</option>
-                                <option value="2">Março</option>
-                                <option value="3">Abril</option>
-                                <option value="4">Maio</option>
-                                <option value="5">Junho</option>
-                                <option value="6">Julho</option>
-                                <option value="7">Agosto</option>
-                                <option value="8">Setembro</option>
-                                <option value="9">Outubro</option>
-                                <option value="10">Novembro</option>
-                                <option value="11" selected>Dezembro</option>
-                            </select>
-                        </div>
-                        <div class="param-group">
-                            <label>Ano da Venda</label>
-                            <select id="saleYear" onchange="updateChart()">
-                                <option value="2025">2025</option>
-                                <option value="2026" selected>2026</option>
-                                <option value="2027">2027</option>
-                                <option value="2028">2028</option>
-                                <option value="2029">2029</option>
-                                <option value="2030">2030</option>
-                            </select>
-                        </div>
-                        <div class="param-group">
-                            <label>Valor da Venda (R$)</label>
-                            <input type="number" id="saleValue" value="500000" onchange="updateChart()">
-                        </div>
-                        <div class="param-group">
-                            <label>Redução no Aporte Mensal (R$)</label>
-                            <input type="number" id="contributionReduction" value="2600" onchange="updateChart()">
-                        </div>
-                        <div class="param-group">
-                            <label>Valor da Casa Futura (R$)</label>
-                            <input type="number" id="futureHouseValue" value="700000" onchange="updateChart()">
-                        </div>
-                    </div>
-                </div>
+
+        <!-- ===================== IMÓVEL DA ILHA ===================== -->
+        <h3 class="section-title">🏝️ Casa própria na Ilhabela</h3>
+        <div class="parameters">
+            <div class="param-group">
+                <label>Valor da casa hoje (R$)</label>
+                <input type="number" id="houseValueToday" value="800000" onchange="updateAll()">
+            </div>
+            <div class="param-group">
+                <label>Valorização do imóvel (% a.a.)</label>
+                <input type="number" id="appreciationRate" value="6" step="0.5" onchange="updateAll()">
+                <span class="param-hint">FipeZAP nacional ≈ 5,5%/ano (jul/2026)</span>
             </div>
         </div>
-        
-        <div class="highlight-box">
-            <h3>📍 Sua Situação Atual</h3>
-            <div class="current-stats">
-                <div class="stat">
-                    <div class="stat-value" id="currentYears">7.2</div>
-                    <div class="stat-label">Anos até FIRE</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value" id="targetDate">Mar 2033</div>
-                    <div class="stat-label">Data da Meta</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value" id="currentMonthly">R$ 10.000</div>
-                    <div class="stat-label">Aporte Mensal</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value" id="totalContributions">R$ 860k</div>
-                    <div class="stat-label">Total de Aportes</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value" id="totalInterest">R$ 880k</div>
-                    <div class="stat-label">Juros Compostos</div>
-                </div>
+
+        <!-- ===================== VENDA DO APÊ DE SP ===================== -->
+        <h3 class="section-title">🏢 Venda do apartamento de SP <span style="color:#666;font-weight:400;font-size:0.8rem;">(usada nos Cenários 1 e 2)</span></h3>
+        <div class="parameters">
+            <div class="param-group">
+                <label>Mês da venda</label>
+                <select id="saleMonth" onchange="updateAll()"></select>
+            </div>
+            <div class="param-group">
+                <label>Ano da venda</label>
+                <select id="saleYear" onchange="updateAll()"></select>
+            </div>
+            <div class="param-group">
+                <label>Valor da venda (R$)</label>
+                <input type="number" id="saleValue" value="500000" onchange="updateAll()">
             </div>
         </div>
-        
-        <!-- Resumo do evento (aparece quando ativo) -->
-        <div class="event-box" id="eventSummary" style="display: none;">
-            <h3>🏠 Impacto da Venda do Apartamento</h3>
-            <div class="current-stats">
-                <div class="stat">
-                    <div class="stat-value highlight-orange" id="saleDate">Dez 2026</div>
-                    <div class="stat-label">Data da Venda</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value highlight-orange" id="saleAmount">R$ 400k</div>
-                    <div class="stat-label">Valor da Venda</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value highlight-orange" id="newContribution">R$ 8k</div>
-                    <div class="stat-label">Novo Aporte</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value highlight-orange" id="newTarget">R$ 2.5M</div>
-                    <div class="stat-label">Nova Meta</div>
-                </div>
-                <div class="stat">
-                    <div class="stat-value highlight-orange" id="timeSaved">0.8</div>
-                    <div class="stat-label">Anos Economizados</div>
-                </div>
+
+        <!-- ===================== FINANCIAMENTO (CENÁRIO 2) ===================== -->
+        <h3 class="section-title">🏦 Financiamento da casa <span style="color:#666;font-weight:400;font-size:0.8rem;">(usado só no Cenário 2 — SAC)</span></h3>
+        <div class="parameters">
+            <div class="param-group">
+                <label>Juros do financiamento (% a.a.)</label>
+                <input type="number" id="financeRate" value="11.5" step="0.1" onchange="updateAll()">
+                <span class="param-hint">Média de mercado ≈ 11,4%/ano (out/2026)</span>
+            </div>
+            <div class="param-group">
+                <label>Prazo (anos)</label>
+                <input type="number" id="financeTermYears" value="15" step="1" onchange="updateAll()">
+                <span class="param-hint">15 anos = prazo mínimo comum. Teste 30 também.</span>
+            </div>
+            <div class="param-group">
+                <label>Amortização extra (R$/mês)</label>
+                <input type="number" id="extraAmortization" value="0" step="100" onchange="updateAll()">
+                <span class="param-hint">Dinheiro a mais p/ abater a dívida e reduzir o prazo</span>
             </div>
         </div>
-        
+
+        <!-- ===================== CARDS COMPARATIVOS ===================== -->
+        <h3 class="section-title" style="color:#4ade80;margin-top:30px;">🎯 Tempo até atingir o objetivo (2M + casa própria)</h3>
+        <div class="scenario-cards">
+            <div class="scenario-card" id="card-default">
+                <h4>Default — Status quo</h4>
+                <div class="tag">Segura o apê alugado e vende só no fim pra ajudar a comprar a casa</div>
+                <div class="big" id="years-default">—</div>
+                <div class="date" id="date-default">—</div>
+                <div class="note" id="note-default"></div>
+            </div>
+            <div class="scenario-card" id="card-c1">
+                <h4>Cenário 1 — Vende e junta tudo</h4>
+                <div class="tag">Vende SP agora, investe tudo e compra a casa à vista no fim</div>
+                <div class="big" id="years-c1">—</div>
+                <div class="date" id="date-c1">—</div>
+                <div class="note" id="note-c1"></div>
+            </div>
+            <div class="scenario-card" id="card-c2">
+                <h4>Cenário 2 — Vende e financia já</h4>
+                <div class="tag">Vende SP, compra a casa já com entrada + financiamento, e junta os 2M</div>
+                <div class="big" id="years-c2">—</div>
+                <div class="date" id="date-c2">—</div>
+                <div class="note" id="note-c2"></div>
+            </div>
+        </div>
+
+        <!-- ===================== DETALHE DO CENÁRIO ===================== -->
         <div class="chart-container">
-            <h3 style="margin-bottom: 8px; color: #fff;">📈 Evolução do Patrimônio ao Longo do Tempo</h3>
-            <p style="color: #888; font-size: 0.85rem; margin-bottom: 20px;">Decomposição: patrimônio inicial + aportes + venda do imóvel + rendimentos</p>
+            <h3 style="margin-bottom: 16px; color: #fff;">📈 Detalhe do cenário</h3>
+            <div class="tabs">
+                <div class="tab" data-scenario="default" onclick="selectScenario('default')">Default</div>
+                <div class="tab active" data-scenario="c1" onclick="selectScenario('c1')">Cenário 1</div>
+                <div class="tab" data-scenario="c2" onclick="selectScenario('c2')">Cenário 2</div>
+            </div>
+
+            <div class="detail-stats" id="detailStats"></div>
+
             <canvas id="evolutionChart"></canvas>
-            
-            <div class="evolution-stats" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 15px; margin-top: 25px; padding-top: 20px; border-top: 1px solid rgba(255,255,255,0.1);">
-                <div style="text-align: center;">
-                    <div style="width: 12px; height: 12px; background: #8b5cf6; border-radius: 2px; display: inline-block; margin-right: 8px;"></div>
-                    <span style="color: #888; font-size: 0.85rem;">Patrimônio Inicial</span>
-                    <div style="font-size: 1.3rem; font-weight: 600; color: #8b5cf6; margin-top: 5px;" id="legendInitial">R$ 260k</div>
-                </div>
-                <div style="text-align: center;">
-                    <div style="width: 12px; height: 12px; background: #3b82f6; border-radius: 2px; display: inline-block; margin-right: 8px;"></div>
-                    <span style="color: #888; font-size: 0.85rem;">Total de Aportes</span>
-                    <div style="font-size: 1.3rem; font-weight: 600; color: #3b82f6; margin-top: 5px;" id="legendContributions">R$ 860k</div>
-                </div>
-                <div style="text-align: center;" id="legendSaleContainer" style="display: none;">
-                    <div style="width: 12px; height: 12px; background: #f97316; border-radius: 2px; display: inline-block; margin-right: 8px;"></div>
-                    <span style="color: #888; font-size: 0.85rem;">Venda do Imóvel</span>
-                    <div style="font-size: 1.3rem; font-weight: 600; color: #f97316; margin-top: 5px;" id="legendSale">R$ 0</div>
-                </div>
-                <div style="text-align: center;">
-                    <div style="width: 12px; height: 12px; background: #4ade80; border-radius: 2px; display: inline-block; margin-right: 8px;"></div>
-                    <span style="color: #888; font-size: 0.85rem;">Ganho com Juros</span>
-                    <div style="font-size: 1.3rem; font-weight: 600; color: #4ade80; margin-top: 5px;" id="legendInterest">R$ 880k</div>
-                </div>
-            </div>
+
+            <div class="warn-box" id="warnBox" style="display:none;"></div>
         </div>
-        
+
+        <!-- ===================== TABELA DE SENSIBILIDADE ===================== -->
         <div class="chart-container">
-            <h3 style="margin-bottom: 8px; color: #fff;">🎯 Impacto do Valor do Aporte no Tempo</h3>
-            <p style="color: #888; font-size: 0.85rem; margin-bottom: 20px;">Compare quanto tempo leva para atingir FIRE com diferentes aportes mensais</p>
-            <canvas id="contributionComparisonChart"></canvas>
-        </div>
-        
-        <div class="chart-container">
-            <h3 style="margin-bottom: 20px; color: #fff;">📋 Tabela Comparativa</h3>
+            <h3 style="margin-bottom: 8px; color: #fff;" id="sensTitle">📋 Sensibilidade</h3>
+            <p style="color: #888; font-size: 0.85rem; margin-bottom: 20px;" id="sensSubtitle"></p>
             <table class="data-table">
-                <thead>
-                    <tr>
-                        <th>Aporte Mensal</th>
-                        <th>Anos até FIRE</th>
-                        <th>Total Aportado</th>
-                        <th>Ganho com Juros</th>
-                        <th>% de Juros</th>
-                    </tr>
-                </thead>
-                <tbody id="dataTableBody">
-                </tbody>
+                <thead id="sensHead"></thead>
+                <tbody id="sensBody"></tbody>
             </table>
-            
-            <div class="insight">
-                <p id="insightText">
-                    💡 Aumentar sua taxa de poupança de 50% para 60% reduziria seu tempo em aproximadamente 1,3 anos.
-                </p>
-            </div>
+            <div class="insight"><p id="insightText"></p></div>
         </div>
-        
+
+        <!-- ===================== NOTAS ===================== -->
         <div class="formula-box">
-            <strong>Fórmula utilizada:</strong><br><br>
-            VF = VP × (1 + r)ⁿ + A × [((1 + r)ⁿ - 1) / r]<br><br>
-            <span style="color: #a78bfa;">Onde: VF = Meta | VP = Patrimônio Atual | r = Taxa mensal | n = Meses | A = Aporte mensal</span><br>
-            <span style="color: #fdba74;">Com venda: o valor é adicionado ao patrimônio na data especificada, e o aporte mensal é reduzido a partir dessa data.</span>
+            <strong>Como cada cenário funciona:</strong><br>
+            <strong>Default:</strong> mantém o apê de SP alugado (segue recebendo o aluguel), investe o aporte cheio, e no fim vende o apê pra ajudar a comprar a casa. Objetivo = investimentos ≥ 2M + preço da casa na data − valor da venda de SP.<br>
+            <strong>Cenário 1:</strong> vende SP na data escolhida (o valor entra nos investimentos e o aporte cai, porque perde o aluguel recebido), junta até 2M + preço da casa, e compra à vista no fim.<br>
+            <strong>Cenário 2:</strong> vende SP e compra a casa já — a venda vira entrada e o resto é financiado (SAC). Para de pagar aluguel (aporte sobe 1.400), mas paga a parcela. Objetivo = investimentos ≥ 2M <em>e</em> financiamento quitado.<br><br>
+            <span style="color:#fdba74;">O preço da casa na Ilha cresce com o tempo (valorização). Juros sempre compostos: taxa mensal = (1 + taxa anual)^(1/12) − 1.</span>
         </div>
     </div>
-    
+
     <script>
+        // ============================================================
+        //  Utilidades
+        // ============================================================
+        const MONTHS_PT = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        const MONTHS_FULL = ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+
+        let selectedScenario = 'c1';
         let evolutionChart;
-        let contributionComparisonChart;
-        let saleEventEnabled = false;
-        
-        function toggleSaleEvent() {
-            saleEventEnabled = !saleEventEnabled;
-            const toggle = document.getElementById('saleToggle');
-            const fields = document.getElementById('saleFields');
-            const summary = document.getElementById('eventSummary');
-            
-            if (saleEventEnabled) {
-                toggle.classList.add('active');
-                fields.classList.add('visible');
-                summary.style.display = 'block';
-            } else {
-                toggle.classList.remove('active');
-                fields.classList.remove('visible');
-                summary.style.display = 'none';
-            }
-            
-            updateChart();
-        }
-        
-        function getStartDate() {
-            const startMonth = parseInt(document.getElementById('startMonth').value);
-            const startYear = parseInt(document.getElementById('startYear').value);
-            return new Date(startYear, startMonth, 1);
-        }
-        
-        function getSaleEventData() {
-            if (!saleEventEnabled) return null;
-            
-            const saleMonth = parseInt(document.getElementById('saleMonth').value);
-            const saleYear = parseInt(document.getElementById('saleYear').value);
-            const saleValue = parseFloat(document.getElementById('saleValue').value);
-            const contributionReduction = parseFloat(document.getElementById('contributionReduction').value);
-            const futureHouseValue = parseFloat(document.getElementById('futureHouseValue').value) || 0;
-            
-            const startDate = getStartDate();
-            const saleDate = new Date(saleYear, saleMonth, 1);
-            
-            // Meses até a venda (o dinheiro entra no mês SEGUINTE à venda)
-            const monthsUntilSale = (saleDate.getFullYear() - startDate.getFullYear()) * 12 + (saleDate.getMonth() - startDate.getMonth());
-            
-            return {
-                saleMonth,
-                saleYear,
-                saleValue,
-                contributionReduction,
-                futureHouseValue,
-                monthsUntilSale: Math.max(0, monthsUntilSale),
-                saleDate
-            };
-        }
-        
-        function calculateYearsToFIREWithEvent(currentWealth, targetWealth, monthlyContribution, annualReturn, saleEvent) {
-            const monthlyReturn = annualReturn / 100 / 12; // Taxa simples: 12% / 12 = 1%
-            
-            // Ajustar meta se houver evento de venda com casa futura
-            let adjustedTarget = targetWealth;
-            if (saleEvent && saleEvent.futureHouseValue) {
-                adjustedTarget = targetWealth + saleEvent.futureHouseValue;
-            }
-            
-            if (currentWealth >= adjustedTarget) return 0;
-            
-            if (!saleEvent) {
-                // Sem evento, usa cálculo padrão
-                return calculateYearsToFIRESimple(currentWealth, targetWealth, monthlyContribution, annualReturn);
-            }
-            
-            // Com evento de venda
-            // Lógica: mês inicial = mês 0 (patrimônio inicial, sem rendimento)
-            // Final do mês 0 = primeiro rendimento + aporte
-            // A venda em Dez/2026 (mês 11) significa que o dinheiro entra no INÍCIO do mês 12 (Jan/2027)
-            
-            let wealth = currentWealth;
-            let months = 0;
-            const maxMonths = 1200;
-            
-            const contributionBeforeSale = monthlyContribution;
-            const contributionAfterSale = monthlyContribution - saleEvent.contributionReduction;
-            
-            while (wealth < adjustedTarget && months < maxMonths) {
-                // Início do mês: se for o mês logo após a venda, adiciona o valor da venda
-                if (months === saleEvent.monthsUntilSale + 1) {
-                    wealth += saleEvent.saleValue;
-                }
-                
-                // Final do mês: aplicar juros e adicionar aporte
-                wealth *= (1 + monthlyReturn);
-                
-                if (months <= saleEvent.monthsUntilSale) {
-                    wealth += contributionBeforeSale;
-                } else {
-                    wealth += contributionAfterSale;
-                }
-                
-                months++;
-            }
-            
-            return months / 12;
-        }
-        
-        function calculateYearsToFIRESimple(currentWealth, targetWealth, monthlyContribution, annualReturn) {
-            const monthlyReturn = annualReturn / 100 / 12; // Taxa simples: 12% / 12 = 1%
-            
-            if (currentWealth >= targetWealth) return 0;
-            if (monthlyContribution <= 0 && currentWealth < targetWealth) return Infinity;
-            
-            // Simulação mês a mês para manter consistência
-            let wealth = currentWealth;
-            let months = 0;
-            const maxMonths = 1200;
-            
-            while (wealth < targetWealth && months < maxMonths) {
-                wealth *= (1 + monthlyReturn);
-                wealth += monthlyContribution;
-                months++;
-            }
-            
-            return months / 12;
-        }
-        
+
+        // Taxa mensal equivalente a uma taxa anual, em juros compostos.
+        function monthlyRate(annualPct) { return Math.pow(1 + annualPct / 100, 1 / 12) - 1; }
+
+        function num(id) { return parseFloat(document.getElementById(id).value) || 0; }
+        function int(id) { return parseInt(document.getElementById(id).value); }
+
         function formatCurrency(value) {
-            if (value >= 1000000) {
-                return 'R$ ' + (value / 1000000).toFixed(1) + 'M';
-            } else if (value >= 1000) {
-                return 'R$ ' + (value / 1000).toFixed(0) + 'k';
-            }
-            return 'R$ ' + value.toFixed(0);
+            const sign = value < 0 ? '-' : '';
+            const v = Math.abs(value);
+            if (v >= 1000000) return sign + 'R$ ' + (v / 1000000).toFixed(2).replace('.', ',') + 'M';
+            if (v >= 1000) return sign + 'R$ ' + (v / 1000).toFixed(0) + 'k';
+            return sign + 'R$ ' + v.toFixed(0);
         }
-        
-        function calculateTargetDate(years) {
-            const startDate = getStartDate();
-            const targetDate = new Date(startDate);
-            targetDate.setMonth(targetDate.getMonth() + Math.round(years * 12));
-            
-            const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-            return `${months[targetDate.getMonth()]} ${targetDate.getFullYear()}`;
+
+        function fmtYears(y) { return isFinite(y) ? y.toFixed(1) + ' anos' : '100+ anos'; }
+
+        function getStartDate() {
+            return new Date(int('startYear'), int('startMonth'), 1);
         }
-        
-        function updateChart() {
-            const monthlyContribution = parseFloat(document.getElementById('monthlyContribution').value);
-            const currentWealth = parseFloat(document.getElementById('currentWealth').value);
-            const targetWealth = parseFloat(document.getElementById('targetWealth').value);
-            const annualReturn = parseFloat(document.getElementById('annualReturn').value);
-            const saleEvent = getSaleEventData();
-            
-            // Calcular anos para o cenário atual
-            const currentYears = calculateYearsToFIREWithEvent(currentWealth, targetWealth, monthlyContribution, annualReturn, saleEvent);
-            const yearsWithoutSale = calculateYearsToFIRESimple(currentWealth, targetWealth, monthlyContribution, annualReturn);
-            
-            // Atualizar estatísticas
-            document.getElementById('currentYears').textContent = currentYears.toFixed(1);
-            document.getElementById('currentMonthly').textContent = formatCurrency(monthlyContribution);
-            document.getElementById('targetDate').textContent = calculateTargetDate(currentYears);
-            
-            // Atualizar resumo do evento de venda
-            if (saleEvent) {
-                const monthNames = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
-                const adjustedTarget = targetWealth + saleEvent.futureHouseValue;
-                document.getElementById('saleDate').textContent = `${monthNames[saleEvent.saleMonth]} ${saleEvent.saleYear}`;
-                document.getElementById('saleAmount').textContent = formatCurrency(saleEvent.saleValue);
-                document.getElementById('newContribution').textContent = formatCurrency(monthlyContribution - saleEvent.contributionReduction);
-                document.getElementById('newTarget').textContent = formatCurrency(adjustedTarget);
-                document.getElementById('timeSaved').textContent = (yearsWithoutSale - currentYears).toFixed(1);
-            }
-            
-            // Calcular totais para exibição
-            const result = calculateTotalsWithEvent(currentWealth, targetWealth, monthlyContribution, annualReturn, saleEvent);
-            document.getElementById('totalContributions').textContent = formatCurrency(result.totalContributions);
-            document.getElementById('totalInterest').textContent = formatCurrency(result.totalInterest);
-            
-            // Gerar dados para tabela
-            updateTable(currentWealth, targetWealth, monthlyContribution, annualReturn, saleEvent);
-            
-            // Atualizar gráficos
-            updateEvolutionChart(currentWealth, targetWealth, monthlyContribution, annualReturn, saleEvent);
-            updateContributionComparisonChart(currentWealth, targetWealth, monthlyContribution, annualReturn, saleEvent);
+
+        function dateFromStart(months) {
+            if (!isFinite(months)) return '—';
+            const d = getStartDate();
+            d.setMonth(d.getMonth() + Math.round(months));
+            return MONTHS_PT[d.getMonth()] + ' ' + d.getFullYear();
         }
-        
-        function calculateTotalsWithEvent(currentWealth, targetWealth, monthlyContribution, annualReturn, saleEvent) {
-            const monthlyReturn = Math.pow(1 + annualReturn / 100, 1/12) - 1;
-            
-            // Ajustar meta se houver evento de venda com casa futura
-            let adjustedTarget = targetWealth;
-            if (saleEvent && saleEvent.futureHouseValue) {
-                adjustedTarget = targetWealth + saleEvent.futureHouseValue;
-            }
-            
-            const years = calculateYearsToFIREWithEvent(currentWealth, targetWealth, monthlyContribution, annualReturn, saleEvent);
-            const totalMonths = Math.round(years * 12);
-            
-            let totalContributions = 0;
-            let saleValue = 0;
-            
-            if (saleEvent) {
-                const monthsBeforeSale = Math.min(saleEvent.monthsUntilSale, totalMonths);
-                const monthsAfterSale = Math.max(0, totalMonths - saleEvent.monthsUntilSale);
-                totalContributions = (monthsBeforeSale * monthlyContribution) + 
-                                    (monthsAfterSale * (monthlyContribution - saleEvent.contributionReduction));
-                saleValue = saleEvent.monthsUntilSale <= totalMonths ? saleEvent.saleValue : 0;
-            } else {
-                totalContributions = totalMonths * monthlyContribution;
-            }
-            
-            const totalInterest = adjustedTarget - currentWealth - totalContributions - saleValue;
-            
+
+        // Quantos meses da data inicial até a data da venda escolhida.
+        function saleMonthsFromStart() {
+            const start = getStartDate();
+            const months = (int('saleYear') - start.getFullYear()) * 12 + (int('saleMonth') - start.getMonth());
+            return Math.max(0, months);
+        }
+
+        // ============================================================
+        //  Leitura dos inputs e montagem do config de cada cenário
+        // ============================================================
+        function readInputs() {
             return {
-                totalContributions,
-                saleValue,
-                totalInterest: Math.max(0, totalInterest),
-                adjustedTarget
+                currentWealth: num('currentWealth'),
+                monthlyContribution: num('monthlyContribution'),
+                targetWealth: num('targetWealth'),
+                annualReturn: num('annualReturn'),
+                rentReceived: num('rentReceived'),
+                rentPaid: num('rentPaid'),
+                houseToday: num('houseValueToday'),
+                appreciationRate: num('appreciationRate'),
+                saleValue: num('saleValue'),
+                monthsUntilSale: saleMonthsFromStart(),
+                financeRate: num('financeRate'),
+                financeTermYears: num('financeTermYears'),
+                extraAmort: num('extraAmortization'),
             };
         }
-        
-        function updateTable(currentWealth, targetWealth, monthlyContribution, annualReturn, saleEvent) {
-            const contributionMultipliers = [0.25, 0.4, 0.5, 0.6, 0.7, 0.8, 0.9, 1.0, 1.1, 1.2, 1.3, 1.4, 1.5, 1.75, 2.0, 2.5];
-            const contributions = contributionMultipliers.map(m => Math.round(monthlyContribution * m / 100) * 100);
-            const uniqueContributions = [...new Set(contributions)].sort((a, b) => a - b);
-            
-            const tableData = [];
-            
-            uniqueContributions.forEach(contrib => {
-                // Para a tabela, ajustar o evento de venda proporcionalmente
-                let adjustedSaleEvent = null;
-                if (saleEvent) {
-                    const ratio = contrib / monthlyContribution;
-                    adjustedSaleEvent = {
-                        ...saleEvent,
-                        contributionReduction: saleEvent.contributionReduction // Manter a redução fixa
-                    };
-                }
-                
-                const years = calculateYearsToFIREWithEvent(currentWealth, targetWealth, contrib, annualReturn, adjustedSaleEvent);
-                const result = calculateTotalsWithEvent(currentWealth, targetWealth, contrib, annualReturn, adjustedSaleEvent);
-                
-                tableData.push({
-                    contribution: contrib,
-                    years,
-                    totalContributions: result.totalContributions,
-                    interestGained: result.totalInterest,
-                    isCurrentValue: contrib === monthlyContribution
-                });
-            });
-            
-            const tbody = document.getElementById('dataTableBody');
-            tbody.innerHTML = '';
-            
-            tableData.forEach(row => {
-                const tr = document.createElement('tr');
-                if (row.isCurrentValue) tr.className = 'highlight-row';
-                
-                const interestPct = (row.interestGained / (targetWealth - currentWealth)) * 100;
-                
-                tr.innerHTML = `
-                    <td>${formatCurrency(row.contribution)}</td>
-                    <td>${row.years.toFixed(1)} anos</td>
-                    <td>${formatCurrency(row.totalContributions)}</td>
-                    <td>${formatCurrency(row.interestGained)}</td>
-                    <td>${Math.max(0, interestPct).toFixed(0)}%</td>
-                `;
-                tbody.appendChild(tr);
-            });
-            
-            // Insight dinâmico
-            const currentIndex = tableData.findIndex(d => d.isCurrentValue);
-            let insightHTML = '';
-            
-            if (currentIndex > 0 && currentIndex < tableData.length - 1) {
-                const lower = tableData[currentIndex - 1];
-                const current = tableData[currentIndex];
-                const higher = tableData[currentIndex + 1];
-                
-                const extraTime = (lower.years - current.years).toFixed(1);
-                const savedTime = (current.years - higher.years).toFixed(1);
-                
-                insightHTML = `
-                    💡 <strong>Aumentar</strong> para ${formatCurrency(higher.contribution)}/mês: economiza <strong>${savedTime} anos</strong><br>
-                    📉 <strong>Reduzir</strong> para ${formatCurrency(lower.contribution)}/mês: adiciona <strong>${extraTime} anos</strong>
-                `;
-            } else {
-                insightHTML = `💡 Ajuste o aporte mensal acima para ver diferentes cenários.`;
-            }
-            document.getElementById('insightText').innerHTML = insightHTML;
+
+        function buildConfig(type, inp) {
+            return {
+                type,
+                currentWealth: inp.currentWealth,
+                monthlyContribution: inp.monthlyContribution,
+                targetWealth: inp.targetWealth,
+                rInv: monthlyRate(inp.annualReturn),
+                gHouse: monthlyRate(inp.appreciationRate),
+                houseToday: inp.houseToday,
+                saleValue: inp.saleValue,
+                rentReceived: inp.rentReceived,
+                rentPaid: inp.rentPaid,
+                monthsUntilSale: inp.monthsUntilSale,
+                rFin: monthlyRate(inp.financeRate),
+                nParcelas: Math.max(1, Math.round(inp.financeTermYears * 12)),
+                extraAmort: inp.extraAmort,
+            };
         }
-        
-        function updateContributionComparisonChart(currentWealth, targetWealth, monthlyContribution, annualReturn, saleEvent) {
-            const baseContributions = [];
-            
-            for (let c = 2000; c <= 30000; c += 1000) {
-                baseContributions.push(c);
-            }
-            
-            if (!baseContributions.includes(monthlyContribution)) {
-                baseContributions.push(monthlyContribution);
-                baseContributions.sort((a, b) => a - b);
-            }
-            
-            const contributions = baseContributions;
-            const yearsData = [];
-            const datesData = [];
-            
-            contributions.forEach(contrib => {
-                let adjustedSaleEvent = saleEvent ? { ...saleEvent } : null;
-                const years = calculateYearsToFIREWithEvent(currentWealth, targetWealth, contrib, annualReturn, adjustedSaleEvent);
-                yearsData.push(years);
-                datesData.push(calculateTargetDate(years));
+
+        // ============================================================
+        //  Motor de simulação (mês a mês) — único p/ os 3 cenários
+        // ============================================================
+        function simulate(cfg) {
+            const maxMonths = 1200; // teto de 100 anos
+            let wealth = cfg.currentWealth; // patrimônio investido
+            let debt = 0;                   // saldo devedor do financiamento (só C2)
+            let financedOriginal = 0;
+            let amortBase = 0;              // amortização constante do SAC
+            let cumContrib = 0;             // aportes líquidos já investidos
+            let cumSale = 0;                // venda que entrou nos investimentos (C1)
+            let cumInterestPaid = 0;        // juros pagos ao banco (C2)
+            let payoffMonth = null;         // mês em que a dívida zerou (C2)
+            let infeasible = false;         // algum mês em que o aporte ficou negativo
+
+            const houseAt = (m) => cfg.houseToday * Math.pow(1 + cfg.gHouse, m);
+
+            // Alvo de patrimônio investido em cada mês.
+            const targetAt = (m) => {
+                if (cfg.type === 'c2') return cfg.targetWealth;                       // casa já comprada; só falta 2M
+                if (cfg.type === 'default') return cfg.targetWealth + houseAt(m) - cfg.saleValue; // vende SP no fim
+                return cfg.targetWealth + houseAt(m);                                 // C1: compra à vista no fim
+            };
+
+            const reachedAt = (m) => cfg.type === 'c2'
+                ? (wealth >= cfg.targetWealth && debt <= 0.01)
+                : (wealth >= targetAt(m));
+
+            const snap = (m) => ({
+                month: m,
+                wealth,
+                debt,
+                initial: cfg.currentWealth,
+                contributions: cumContrib,
+                sale: cumSale,
+                interest: Math.max(0, wealth - cfg.currentWealth - cumContrib - cumSale),
+                target: targetAt(m),
             });
-            
-            if (contributionComparisonChart) {
-                // Destruir e recriar para atualizar datesData no tooltip
-                contributionComparisonChart.destroy();
-            }
-            createContributionComparisonChart(contributions, yearsData, datesData, monthlyContribution);
-        }
-        
-        function createContributionComparisonChart(contributions, yearsData, datesData, currentContribution) {
-            const ctx = document.getElementById('contributionComparisonChart').getContext('2d');
-            
-            contributionComparisonChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: contributions.map(c => formatCurrency(c)),
-                    datasets: [{
-                        label: 'Anos até FIRE',
-                        data: yearsData,
-                        backgroundColor: contributions.map(c => 
-                            c === currentContribution ? 'rgba(251, 191, 36, 0.8)' : 'rgba(139, 92, 246, 0.6)'
-                        ),
-                        borderColor: contributions.map(c => 
-                            c === currentContribution ? 'rgba(251, 191, 36, 1)' : 'rgba(139, 92, 246, 1)'
-                        ),
-                        borderWidth: 2,
-                        borderRadius: 6,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: true,
-                    aspectRatio: 2.5,
-                    plugins: {
-                        legend: {
-                            display: false
-                        },
-                        tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.85)',
-                            titleFont: { size: 14 },
-                            bodyFont: { size: 13 },
-                            padding: 12,
-                            callbacks: {
-                                title: function(context) {
-                                    return `Aporte: ${context[0].label}/mês`;
-                                },
-                                label: function(context) {
-                                    const years = context.raw.toFixed(1);
-                                    const date = datesData[context.dataIndex];
-                                    return [
-                                        `Tempo: ${years} anos`,
-                                        `Meta em: ${date}`
-                                    ];
-                                }
-                            }
-                        }
-                    },
-                    scales: {
-                        y: {
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#888',
-                                callback: function(value) {
-                                    return value + ' anos';
-                                }
-                            },
-                            title: {
-                                display: true,
-                                text: 'Anos até atingir a meta',
-                                color: '#888'
-                            }
-                        },
-                        x: {
-                            grid: {
-                                display: false
-                            },
-                            ticks: {
-                                color: '#888',
-                                maxRotation: 45,
-                                minRotation: 45
-                            },
-                            title: {
-                                display: true,
-                                text: 'Aporte Mensal',
-                                color: '#888'
-                            }
-                        }
+
+            const series = [snap(0)];
+            let m = 0;
+            let reached = reachedAt(0);
+
+            while (!reached && m < maxMonths) {
+                m++;
+
+                // --- evento de venda/compra no mês escolhido ---
+                const hasSale = (cfg.type === 'c1' || cfg.type === 'c2');
+                if (hasSale && m === cfg.monthsUntilSale) {
+                    if (cfg.type === 'c1') {
+                        wealth += cfg.saleValue;      // dinheiro da venda vai todo pros investimentos
+                        cumSale += cfg.saleValue;
+                    } else { // c2: compra a casa agora
+                        const price = houseAt(m);
+                        financedOriginal = Math.max(0, price - cfg.saleValue); // entrada = valor da venda
+                        debt = financedOriginal;
+                        amortBase = financedOriginal / cfg.nParcelas;
                     }
                 }
-            });
-        }
-        
-        function updateEvolutionChart(currentWealth, targetWealth, monthlyContribution, annualReturn, saleEvent) {
-            // Ajustar meta se houver evento de venda com casa futura
-            let adjustedTarget = targetWealth;
-            if (saleEvent && saleEvent.futureHouseValue) {
-                adjustedTarget = targetWealth + saleEvent.futureHouseValue;
-            }
-            
-            const years = calculateYearsToFIREWithEvent(currentWealth, targetWealth, monthlyContribution, annualReturn, saleEvent);
-            const monthlyReturn = annualReturn / 100 / 12; // Taxa simples: 12% / 12 = 1%
-            
-            const yearsToShow = Math.ceil(years) + 1;
-            const labels = [];
-            const initialWealthData = [];
-            const contributionsData = [];
-            const saleValueData = [];
-            const interestData = [];
-            
-            for (let year = 0; year <= yearsToShow; year++) {
-                const monthsToSimulate = year * 12;
-                labels.push(`Ano ${year}`);
-                
-                // Simular mês a mês até este ponto
-                // Mês 0 = mês inicial, primeiro ciclo acontece no final do mês 0
-                let wealth = currentWealth;
-                let totalPureContributions = 0;
-                let saleAdded = 0;
-                
-                for (let m = 0; m < monthsToSimulate; m++) {
-                    // Início do mês: se for o mês logo após a venda, adiciona o valor da venda
-                    if (saleEvent && m === saleEvent.monthsUntilSale + 1) {
-                        saleAdded = saleEvent.saleValue;
-                        wealth += saleAdded;
-                    }
-                    
-                    // Final do mês: aplicar juros e adicionar aporte
-                    wealth *= (1 + monthlyReturn);
-                    
-                    let contribution = monthlyContribution;
-                    if (saleEvent && m > saleEvent.monthsUntilSale) {
-                        contribution = monthlyContribution - saleEvent.contributionReduction;
-                    }
-                    wealth += contribution;
-                    totalPureContributions += contribution;
+
+                // --- dinheiro livre do mês p/ investir ---
+                let aporte = cfg.monthlyContribution;
+                if (cfg.type === 'c1' && m >= cfg.monthsUntilSale) {
+                    aporte -= cfg.rentReceived;                    // vendeu SP: perde o aluguel recebido
                 }
-                
-                const totalInterest = wealth - currentWealth - totalPureContributions - saleAdded;
-                
-                initialWealthData.push(currentWealth);
-                contributionsData.push(totalPureContributions);
-                saleValueData.push(saleAdded);
-                interestData.push(Math.max(0, totalInterest));
+                if (cfg.type === 'c2' && m >= cfg.monthsUntilSale) {
+                    aporte += (cfg.rentPaid - cfg.rentReceived);   // comprou: para de pagar aluguel e de receber
+                }
+
+                // --- financiamento (C2) ---
+                if (cfg.type === 'c2' && debt > 0) {
+                    const juros = debt * cfg.rFin;
+                    let amort = amortBase + cfg.extraAmort;        // amortização constante + extra (reduz prazo)
+                    if (amort > debt) amort = debt;
+                    debt -= amort;
+                    if (debt < 0.01) debt = 0;
+                    aporte -= (juros + amort);                     // o que foi pro banco não é investido
+                    cumInterestPaid += juros;
+                    if (debt === 0 && payoffMonth === null) payoffMonth = m;
+                }
+
+                if (aporte < 0) infeasible = true;
+
+                // --- rende e aplica o aporte do mês ---
+                wealth = wealth * (1 + cfg.rInv) + aporte;
+                cumContrib += aporte;
+
+                series.push(snap(m));
+                reached = reachedAt(m);
             }
-            
-            // Atualizar legendas
-            const finalIndex = yearsToShow;
-            document.getElementById('legendInitial').textContent = formatCurrency(currentWealth);
-            document.getElementById('legendContributions').textContent = formatCurrency(contributionsData[finalIndex]);
-            document.getElementById('legendSale').textContent = formatCurrency(saleValueData[finalIndex]);
-            document.getElementById('legendInterest').textContent = formatCurrency(interestData[finalIndex]);
-            
-            // Mostrar/ocultar legenda de venda
-            const saleContainer = document.getElementById('legendSaleContainer');
-            if (saleEvent) {
-                saleContainer.style.display = 'block';
-            } else {
-                saleContainer.style.display = 'none';
+
+            return {
+                reached,
+                months: reached ? m : Infinity,
+                years: reached ? m / 12 : Infinity,
+                series,
+                cumInterestPaid,
+                financedOriginal,
+                amortBase,
+                payoffMonth,
+                infeasible,
+            };
+        }
+
+        // ============================================================
+        //  Render — cards comparativos
+        // ============================================================
+        function renderCards(results, inp) {
+            const monthsSale = dateFromStart(inp.monthsUntilSale);
+
+            setCard('default', results.default,
+                `Vende SP só no fim (ajuda a pagar a casa)`);
+            setCard('c1', results.c1,
+                `Vende SP em ${monthsSale} · aporte cai ${formatCurrency(inp.rentReceived)}/mês`);
+
+            // Cenário 2 tem nota própria com dados do financiamento
+            const c2 = results.c2;
+            let note2 = `Vende SP em ${monthsSale}, financia ${formatCurrency(c2.financedOriginal)}.`;
+            if (c2.payoffMonth) note2 += ` Quita a dívida em ${(c2.payoffMonth / 12).toFixed(1)} anos.`;
+            if (c2.infeasible) note2 += ` ⚠️ Em algum mês a parcela supera a renda disponível.`;
+            setCard('c2', c2, note2);
+        }
+
+        function setCard(key, res, note) {
+            document.getElementById('years-' + key).textContent = fmtYears(res.years);
+            document.getElementById('date-' + key).textContent = res.reached ? 'Meta em ' + dateFromStart(res.months) : 'Não atingível';
+            document.getElementById('note-' + key).textContent = note;
+            document.getElementById('card-' + key).classList.toggle('unreachable', !res.reached);
+        }
+
+        // ============================================================
+        //  Render — detalhe do cenário selecionado
+        // ============================================================
+        function selectScenario(scenario) {
+            selectedScenario = scenario;
+            document.querySelectorAll('.tab').forEach(t => {
+                t.classList.toggle('active', t.dataset.scenario === scenario);
+            });
+            updateAll();
+        }
+
+        function renderDetail(res, scenario, inp) {
+            renderDetailStats(res, scenario, inp);
+
+            // Amostra a série por ano para o gráfico.
+            const lastMonth = isFinite(res.months) ? res.months : res.series[res.series.length - 1].month;
+            const yearsToShow = Math.max(1, Math.ceil(lastMonth / 12));
+            const labels = [], initial = [], contributions = [], sale = [], interest = [], target = [], debt = [];
+
+            for (let y = 0; y <= yearsToShow; y++) {
+                const idx = Math.min(y * 12, res.series.length - 1);
+                const s = res.series[idx];
+                labels.push('Ano ' + y);
+                initial.push(s.initial);
+                contributions.push(Math.max(0, s.contributions));
+                sale.push(s.sale);
+                interest.push(s.interest);
+                target.push(s.target);
+                debt.push(s.debt);
             }
-            
+
             const datasets = [
-                {
-                    label: 'Patrimônio Inicial',
-                    data: initialWealthData,
-                    backgroundColor: 'rgba(139, 92, 246, 0.8)',
-                    borderColor: 'rgba(139, 92, 246, 1)',
-                    borderWidth: 0,
-                    borderRadius: 0,
-                    stack: 'stack0'
-                },
-                {
-                    label: 'Aportes',
-                    data: contributionsData,
-                    backgroundColor: 'rgba(59, 130, 246, 0.8)',
-                    borderColor: 'rgba(59, 130, 246, 1)',
-                    borderWidth: 0,
-                    borderRadius: 0,
-                    stack: 'stack0'
-                }
+                barDS('Patrimônio inicial', initial, 'rgba(139, 92, 246, 0.8)'),
+                barDS('Aportes', contributions, 'rgba(59, 130, 246, 0.8)'),
             ];
-            
-            if (saleEvent) {
-                datasets.push({
-                    label: 'Venda do Imóvel',
-                    data: saleValueData,
-                    backgroundColor: 'rgba(249, 115, 22, 0.8)',
-                    borderColor: 'rgba(249, 115, 22, 1)',
-                    borderWidth: 0,
-                    borderRadius: 0,
-                    stack: 'stack0'
-                });
+            if (scenario === 'c1') datasets.push(barDS('Venda de SP', sale, 'rgba(249, 115, 22, 0.8)'));
+            datasets.push(barDS('Rendimentos', interest, 'rgba(74, 222, 128, 0.8)'));
+
+            // Linha da meta (móvel no default/C1, fixa no C2)
+            datasets.push(lineDS('Meta', target, 'rgba(251, 191, 36, 0.9)', 'meta'));
+            // Linha da dívida (só C2)
+            if (scenario === 'c2') datasets.push(lineDS('Saldo devedor', debt, 'rgba(239, 68, 68, 0.9)', 'debt'));
+
+            drawEvolutionChart(labels, datasets);
+
+            // Aviso de inviabilidade
+            const warn = document.getElementById('warnBox');
+            if (res.infeasible) {
+                warn.style.display = 'block';
+                warn.innerHTML = '⚠️ Neste cenário, em algum mês a parcela + amortização extra ficam maiores do que o dinheiro disponível (aporte negativo). Na prática você precisaria reduzir a amortização extra, aumentar a renda/aporte, ou alongar o prazo.';
+            } else {
+                warn.style.display = 'none';
             }
-            
-            datasets.push({
-                label: 'Rendimentos',
-                data: interestData,
-                backgroundColor: 'rgba(74, 222, 128, 0.8)',
-                borderColor: 'rgba(74, 222, 128, 1)',
-                borderWidth: 0,
-                borderRadius: {topLeft: 4, topRight: 4},
-                stack: 'stack0'
-            });
-            
-            if (evolutionChart) {
-                // Destruir e recriar para atualizar as linhas de meta
-                evolutionChart.destroy();
-            }
-            createEvolutionChart(labels, datasets, targetWealth, adjustedTarget, saleEvent, initialWealthData, contributionsData, saleValueData, interestData);
         }
-        
-        function createEvolutionChart(labels, datasets, targetWealth, adjustedTarget, saleEvent, initialWealthData, contributionsData, saleValueData, interestData) {
+
+        function renderDetailStats(res, scenario, inp) {
+            const el = document.getElementById('detailStats');
+            const stats = [];
+            stats.push(statHTML(fmtYears(res.years), 'Tempo até o objetivo'));
+            stats.push(statHTML(res.reached ? dateFromStart(res.months) : '—', 'Data do objetivo'));
+
+            if (scenario === 'default') {
+                stats.push(statHTML(formatCurrency(inp.monthlyContribution), 'Aporte mensal'));
+                stats.push(statHTML(formatCurrency(res.series[res.series.length - 1].target), 'Alvo de investimento no fim'));
+            } else if (scenario === 'c1') {
+                stats.push(statHTML(formatCurrency(inp.monthlyContribution - inp.rentReceived), 'Aporte após a venda'));
+                stats.push(statHTML(formatCurrency(res.series[res.series.length - 1].target), 'Alvo (2M + casa) no fim'));
+            } else { // c2
+                const parcelaInicial = res.financedOriginal * monthlyRate(inp.financeRate) + res.amortBase;
+                stats.push(statHTML(formatCurrency(res.financedOriginal), 'Valor financiado', true));
+                stats.push(statHTML(formatCurrency(parcelaInicial + inp.extraAmort), '1ª parcela (c/ extra)', true));
+                stats.push(statHTML(res.payoffMonth ? (res.payoffMonth / 12).toFixed(1) + ' anos' : '—', 'Quitação da dívida', true));
+                stats.push(statHTML(formatCurrency(res.cumInterestPaid), 'Juros totais pagos', true));
+            }
+            el.innerHTML = stats.join('');
+        }
+
+        function statHTML(value, label, orange) {
+            return `<div class="stat"><div class="stat-value ${orange ? 'orange' : ''}">${value}</div><div class="stat-label">${label}</div></div>`;
+        }
+
+        function barDS(label, data, color) {
+            return { label, data, backgroundColor: color, borderWidth: 0, stack: 'patrimonio', order: 2 };
+        }
+
+        function lineDS(label, data, color, stackId) {
+            return {
+                type: 'line', label, data,
+                borderColor: color, borderWidth: 2, borderDash: [6, 4],
+                pointRadius: 0, fill: false, stack: stackId, order: 1,
+            };
+        }
+
+        function drawEvolutionChart(labels, datasets) {
+            if (evolutionChart) evolutionChart.destroy();
             const ctx = document.getElementById('evolutionChart').getContext('2d');
-            
-            // Determinar se precisamos de duas linhas de meta
-            const hasTwoTargets = saleEvent && adjustedTarget > targetWealth;
-            
             evolutionChart = new Chart(ctx, {
                 type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: datasets
-                },
+                data: { labels, datasets },
                 options: {
                     responsive: true,
                     maintainAspectRatio: true,
                     aspectRatio: 2,
-                    interaction: {
-                        intersect: false,
-                        mode: 'index'
-                    },
+                    interaction: { intersect: false, mode: 'index' },
                     plugins: {
-                        legend: {
-                            display: false
-                        },
+                        legend: { labels: { color: '#aaa', boxWidth: 12, font: { size: 11 } } },
                         tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.85)',
-                            titleFont: { size: 14, weight: 'bold' },
-                            bodyFont: { size: 13 },
-                            padding: 15,
+                            backgroundColor: 'rgba(0,0,0,0.85)', padding: 12,
                             callbacks: {
-                                afterTitle: function(context) {
-                                    const dataIndex = context[0].dataIndex;
-                                    const total = initialWealthData[dataIndex] + contributionsData[dataIndex] + 
-                                                 (saleValueData[dataIndex] || 0) + interestData[dataIndex];
-                                    return `Total: ${formatCurrency(total)}`;
-                                },
-                                label: function(context) {
-                                    const value = context.raw;
-                                    if (value === 0) return null;
-                                    const dataIndex = context.dataIndex;
-                                    const total = initialWealthData[dataIndex] + contributionsData[dataIndex] + 
-                                                 (saleValueData[dataIndex] || 0) + interestData[dataIndex];
-                                    const percentage = ((value / total) * 100).toFixed(0);
-                                    return `${context.dataset.label}: ${formatCurrency(value)} (${percentage}%)`;
-                                }
-                            }
-                        }
+                                label: (c) => c.raw === 0 && c.dataset.stack === 'patrimonio'
+                                    ? null
+                                    : `${c.dataset.label}: ${formatCurrency(c.raw)}`,
+                            },
+                        },
                     },
                     scales: {
                         y: {
-                            stacked: true,
-                            beginAtZero: true,
-                            grid: {
-                                color: 'rgba(255, 255, 255, 0.1)'
-                            },
-                            ticks: {
-                                color: '#888',
-                                callback: function(value) {
-                                    return formatCurrency(value);
-                                }
-                            },
-                            title: {
-                                display: true,
-                                text: 'Patrimônio Acumulado',
-                                color: '#888'
-                            }
+                            stacked: true, beginAtZero: true,
+                            grid: { color: 'rgba(255,255,255,0.1)' },
+                            ticks: { color: '#888', callback: (v) => formatCurrency(v) },
+                            title: { display: true, text: 'Valor (R$)', color: '#888' },
                         },
-                        x: {
-                            stacked: true,
-                            grid: {
-                                display: false
-                            },
-                            ticks: {
-                                color: '#888'
-                            }
-                        }
-                    }
+                        x: { stacked: true, grid: { display: false }, ticks: { color: '#888' } },
+                    },
                 },
-                plugins: [{
-                    id: 'targetLinesPlugin',
-                    afterDatasetsDraw: function(chart) {
-                        const yScale = chart.scales.y;
-                        const ctx = chart.ctx;
-                        
-                        // Linha da meta original (aposentadoria)
-                        const targetY1 = yScale.getPixelForValue(targetWealth);
-                        ctx.save();
-                        ctx.beginPath();
-                        ctx.setLineDash([6, 4]);
-                        ctx.strokeStyle = 'rgba(251, 191, 36, 0.8)';
-                        ctx.lineWidth = 2;
-                        ctx.moveTo(chart.chartArea.left, targetY1);
-                        ctx.lineTo(chart.chartArea.right, targetY1);
-                        ctx.stroke();
-                        
-                        // Label meta 1
-                        const label1 = 'Meta: ' + formatCurrency(targetWealth);
-                        ctx.fillStyle = 'rgba(251, 191, 36, 0.9)';
-                        ctx.fillRect(chart.chartArea.left + 10, targetY1 - 12, 110, 20);
-                        ctx.fillStyle = '#000';
-                        ctx.font = 'bold 11px sans-serif';
-                        ctx.textAlign = 'center';
-                        ctx.fillText(label1, chart.chartArea.left + 65, targetY1 + 2);
-                        
-                        // Se tiver segunda meta (com casa), desenhar segunda linha
-                        if (hasTwoTargets) {
-                            const targetY2 = yScale.getPixelForValue(adjustedTarget);
-                            ctx.beginPath();
-                            ctx.setLineDash([6, 4]);
-                            ctx.strokeStyle = 'rgba(249, 115, 22, 0.8)';
-                            ctx.lineWidth = 2;
-                            ctx.moveTo(chart.chartArea.left, targetY2);
-                            ctx.lineTo(chart.chartArea.right, targetY2);
-                            ctx.stroke();
-                            
-                            // Label meta 2
-                            const label2 = 'Meta + Casa: ' + formatCurrency(adjustedTarget);
-                            ctx.fillStyle = 'rgba(249, 115, 22, 0.9)';
-                            ctx.fillRect(chart.chartArea.left + 10, targetY2 - 12, 140, 20);
-                            ctx.fillStyle = '#000';
-                            ctx.font = 'bold 11px sans-serif';
-                            ctx.textAlign = 'center';
-                            ctx.fillText(label2, chart.chartArea.left + 80, targetY2 + 2);
-                        }
-                        
-                        ctx.restore();
-                    }
-                }]
             });
         }
-        
-        // Mês/Ano iniciais = mês/ano atuais (calculado no momento em que a página abre)
-        function setCurrentMonthYear(){
-            const now = new Date();
-            const ms = document.getElementById('startMonth');
-            const ys = document.getElementById('startYear');
-            if(ms) ms.value = String(now.getMonth());
-            if(ys){
-                const opt = Array.from(ys.options).find(o => o.value === String(now.getFullYear()));
-                if(opt) ys.value = String(now.getFullYear());
+
+        // ============================================================
+        //  Render — tabela de sensibilidade (adapta ao cenário)
+        // ============================================================
+        function renderSensitivity(scenario, inp) {
+            const head = document.getElementById('sensHead');
+            const body = document.getElementById('sensBody');
+            const title = document.getElementById('sensTitle');
+            const subtitle = document.getElementById('sensSubtitle');
+            const insight = document.getElementById('insightText');
+            body.innerHTML = '';
+
+            if (scenario === 'c2') {
+                // No Cenário 2 o interessante é variar a amortização extra (trade-off investir x amortizar).
+                title.textContent = '📋 Sensibilidade — amortização extra';
+                subtitle.textContent = 'Quanto mais você joga na amortização, mais rápido quita a dívida — mas menos sobra pra investir. Veja onde o objetivo chega antes.';
+                head.innerHTML = `<tr><th>Amort. extra/mês</th><th>Tempo até objetivo</th><th>Quitação da dívida</th><th>Juros totais pagos</th></tr>`;
+
+                const extras = [0, 500, 1000, 1500, 2000, 3000];
+                if (!extras.includes(inp.extraAmort)) { extras.push(inp.extraAmort); extras.sort((a, b) => a - b); }
+
+                let best = { years: Infinity, extra: null };
+                extras.forEach(e => {
+                    const res = simulate(buildConfig('c2', { ...inp, extraAmort: e }));
+                    if (res.years < best.years) best = { years: res.years, extra: e };
+                    const tr = document.createElement('tr');
+                    if (e === inp.extraAmort) tr.className = 'highlight-row';
+                    tr.innerHTML = `
+                        <td>${formatCurrency(e)}</td>
+                        <td>${fmtYears(res.years)}</td>
+                        <td>${res.payoffMonth ? (res.payoffMonth / 12).toFixed(1) + ' anos' : '—'}</td>
+                        <td>${formatCurrency(res.cumInterestPaid)}</td>`;
+                    body.appendChild(tr);
+                });
+                insight.innerHTML = best.extra !== null
+                    ? `💡 Entre as opções testadas, amortizar <strong>${formatCurrency(best.extra)}/mês</strong> é o que atinge o objetivo mais rápido (${fmtYears(best.years)}). Compare com os juros economizados.`
+                    : '💡 Ajuste os campos acima.';
+            } else {
+                // Default e Cenário 1: variar o aporte mensal.
+                title.textContent = '📋 Sensibilidade — aporte mensal';
+                subtitle.textContent = 'Quanto o valor do aporte muda o tempo até o objetivo neste cenário.';
+                head.innerHTML = `<tr><th>Aporte mensal</th><th>Tempo até objetivo</th><th>Data do objetivo</th></tr>`;
+
+                const multipliers = [0.5, 0.75, 1.0, 1.25, 1.5, 2.0];
+                const base = inp.monthlyContribution;
+                const values = [...new Set(multipliers.map(m => Math.round(base * m / 100) * 100))].sort((a, b) => a - b);
+
+                values.forEach(v => {
+                    const res = simulate(buildConfig(scenario, { ...inp, monthlyContribution: v }));
+                    const tr = document.createElement('tr');
+                    if (v === base) tr.className = 'highlight-row';
+                    tr.innerHTML = `
+                        <td>${formatCurrency(v)}</td>
+                        <td>${fmtYears(res.years)}</td>
+                        <td>${res.reached ? dateFromStart(res.months) : '—'}</td>`;
+                    body.appendChild(tr);
+                });
+                insight.innerHTML = `💡 Dobrar o aporte não corta o tempo pela metade — os juros compostos têm peso maior quanto mais patrimônio você já tem.`;
             }
         }
-        setCurrentMonthYear();
-        // alguns navegadores restauram valores de formulário antigos ao recarregar a página
-        // (inclusive dentro de iframe) — reaplica o default depois desse processo também
-        window.addEventListener('pageshow', function(){ setCurrentMonthYear(); updateChart(); });
-        setTimeout(function(){ setCurrentMonthYear(); updateChart(); }, 150);
 
-        // Recebe o Patrimônio Atual calculado no dashboard principal (quando embedado via iframe)
-        window.addEventListener('message', function(e){
-            if(e.data && e.data.type === 'aposDefaults' && typeof e.data.patrimonio === 'number' && e.data.patrimonio > 0){
+        // ============================================================
+        //  Orquestração
+        // ============================================================
+        function updateAll() {
+            const inp = readInputs();
+            const results = {
+                default: simulate(buildConfig('default', inp)),
+                c1: simulate(buildConfig('c1', inp)),
+                c2: simulate(buildConfig('c2', inp)),
+            };
+            renderCards(results, inp);
+            renderDetail(results[selectedScenario], selectedScenario, inp);
+            renderSensitivity(selectedScenario, inp);
+        }
+
+        // ============================================================
+        //  Inicialização
+        // ============================================================
+        function populateSelect(id, items, selectedValue) {
+            const sel = document.getElementById(id);
+            sel.innerHTML = '';
+            items.forEach(it => {
+                const opt = document.createElement('option');
+                opt.value = it.value;
+                opt.textContent = it.label;
+                if (String(it.value) === String(selectedValue)) opt.selected = true;
+                sel.appendChild(opt);
+            });
+        }
+
+        function initSelects() {
+            const now = new Date();
+            const curMonth = now.getMonth();
+            const curYear = now.getFullYear();
+
+            const monthItems = MONTHS_FULL.map((m, i) => ({ value: i, label: m }));
+            populateSelect('startMonth', monthItems, curMonth);
+            populateSelect('saleMonth', monthItems, 11); // dezembro por padrão
+
+            const startYears = [];
+            for (let y = curYear; y <= curYear + 6; y++) startYears.push({ value: y, label: y });
+            populateSelect('startYear', startYears, curYear);
+
+            const saleYears = [];
+            for (let y = curYear; y <= curYear + 15; y++) saleYears.push({ value: y, label: y });
+            populateSelect('saleYear', saleYears, curYear + 1); // venda default ~1 ano à frente
+        }
+
+        initSelects();
+        updateAll();
+
+        // Alguns navegadores restauram valores antigos de formulário ao recarregar (inclusive em iframe).
+        window.addEventListener('pageshow', function () { initSelects(); updateAll(); });
+        setTimeout(function () { updateAll(); }, 150);
+
+        // Recebe o Patrimônio Investido calculado no dashboard principal (quando embedado via iframe).
+        window.addEventListener('message', function (e) {
+            if (e.data && e.data.type === 'aposDefaults' && typeof e.data.patrimonio === 'number' && e.data.patrimonio > 0) {
                 const el = document.getElementById('currentWealth');
-                if(el){ el.value = Math.round(e.data.patrimonio); updateChart(); }
+                if (el) { el.value = Math.round(e.data.patrimonio); updateAll(); }
             }
         });
-
-        // Inicializar
-        updateChart();
     </script>
 </body>
 </html>
