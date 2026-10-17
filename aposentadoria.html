@@ -533,6 +533,9 @@
             let amortBase = 0;              // amortização constante do SAC
             let cumContrib = 0;             // aportes líquidos já investidos
             let cumSale = 0;                // venda que entrou nos investimentos (C1)
+            // Fatias do patrimônio (somam sempre = wealth), p/ a decomposição do gráfico.
+            let compInitial = cfg.currentWealth; // parte vinda do patrimônio inicial
+            let compInterest = 0;                // parte vinda dos rendimentos
             let cumInterestPaid = 0;        // juros pagos ao banco (C2)
             let payoffMonth = null;         // mês em que a dívida zerou (C2)
             let infeasible = false;         // algum mês em que o aporte ficou negativo
@@ -566,10 +569,10 @@
                 month: m,
                 wealth,
                 debt,
-                initial: cfg.currentWealth,
+                initial: compInitial,
                 contributions: cumContrib,
                 sale: cumSale,
-                interest: Math.max(0, wealth - cfg.currentWealth - cumContrib - cumSale),
+                interest: compInterest,
                 target: targetAt(m),
             });
 
@@ -595,6 +598,13 @@
                         return;
                     }
                     gapFromInvest = gap;
+                    // O saque sai proporcionalmente de cada fatia (inicial, aportes, venda, rendimentos),
+                    // pra decomposição do gráfico continuar somando = wealth e sem valores negativos.
+                    const factor = (wealth - gap) / wealth;
+                    compInitial *= factor;
+                    cumContrib *= factor;
+                    cumSale *= factor;
+                    compInterest *= factor;
                     wealth -= gap;                    // tira do patrimônio investido
                     housePrice = price;
                     purchaseMonth = m;
@@ -642,8 +652,10 @@
                 if (aporte < 0) infeasible = true;
 
                 // --- rende e aplica o aporte do mês ---
-                wealth = wealth * (1 + cfg.rInv) + aporte;
-                cumContrib += aporte;
+                const growth = wealth * cfg.rInv;    // rendimento do mês vai pra fatia de rendimentos
+                compInterest += growth;
+                cumContrib += aporte;                // aporte (líquido, pode ser negativo no C2) vai pra fatia de aportes
+                wealth = wealth + growth + aporte;
 
                 series.push(snap(m));
                 reached = reachedAt(m);
@@ -784,24 +796,14 @@
                 wealth.push(s.wealth);
             }
 
-            let datasets;
-            if (scenario === 'c3') {
-                // C3 tira um pedação do investido pra comprar; a decomposição em fatias
-                // distorceria (o saque não é uma "fonte"), então mostro o patrimônio total.
-                datasets = [
-                    barDS('Patrimônio investido', wealth, 'rgba(74, 222, 128, 0.8)'),
-                    lineDS('Meta', target, 'rgba(251, 191, 36, 0.9)', 'meta'),
-                ];
-            } else {
-                datasets = [
-                    barDS('Patrimônio inicial', initial, 'rgba(139, 92, 246, 0.8)'),
-                    barDS('Aportes', contributions, 'rgba(59, 130, 246, 0.8)'),
-                ];
-                if (scenario === 'c1') datasets.push(barDS('Venda de SP', sale, 'rgba(249, 115, 22, 0.8)'));
-                datasets.push(barDS('Rendimentos', interest, 'rgba(74, 222, 128, 0.8)'));
-                datasets.push(lineDS('Meta', target, 'rgba(251, 191, 36, 0.9)', 'meta'));
-                if (scenario === 'c2') datasets.push(lineDS('Saldo devedor', debt, 'rgba(239, 68, 68, 0.9)', 'debt'));
-            }
+            const datasets = [
+                barDS('Patrimônio inicial', initial, 'rgba(139, 92, 246, 0.8)'),
+                barDS('Aportes', contributions, 'rgba(59, 130, 246, 0.8)'),
+            ];
+            if (scenario === 'c1') datasets.push(barDS('Venda de SP', sale, 'rgba(249, 115, 22, 0.8)'));
+            datasets.push(barDS('Rendimentos', interest, 'rgba(74, 222, 128, 0.8)'));
+            datasets.push(lineDS('Meta', target, 'rgba(251, 191, 36, 0.9)', 'meta'));
+            if (scenario === 'c2') datasets.push(lineDS('Saldo devedor', debt, 'rgba(239, 68, 68, 0.9)', 'debt'));
 
             drawEvolutionChart(labels, datasets);
 
