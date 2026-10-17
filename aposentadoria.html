@@ -108,6 +108,7 @@
         .scenario-card .tag { color: #888; font-size: 0.72rem; margin-bottom: 14px; min-height: 28px; }
         .scenario-card .big { font-size: 2rem; font-weight: 700; color: #4ade80; line-height: 1; }
         .scenario-card .date { color: #bbb; font-size: 0.85rem; margin-top: 6px; }
+        .scenario-card .ages { color: #7fa88c; font-size: 0.78rem; margin-top: 4px; }
         .scenario-card .house { color: #fdba74; font-size: 0.8rem; margin-top: 12px; line-height: 1.4; }
         .scenario-card .note { color: #93c5fd; font-size: 0.76rem; margin-top: 12px; line-height: 1.5; text-align: left; }
         .scenario-card.unreachable .big { color: #f97316; }
@@ -322,6 +323,7 @@
                 <div class="tag">Segura o apê alugado e vende só no fim pra ajudar a comprar a casa</div>
                 <div class="big" id="years-default">—</div>
                 <div class="date" id="date-default">—</div>
+                <div class="ages" id="ages-default"></div>
                 <div class="house" id="house-default"></div>
                 <div class="note" id="note-default"></div>
             </div>
@@ -330,6 +332,7 @@
                 <div class="tag">Vende SP agora, investe tudo e compra a casa à vista no fim</div>
                 <div class="big" id="years-c1">—</div>
                 <div class="date" id="date-c1">—</div>
+                <div class="ages" id="ages-c1"></div>
                 <div class="house" id="house-c1"></div>
                 <div class="note" id="note-c1"></div>
             </div>
@@ -338,6 +341,7 @@
                 <div class="tag">Vende SP, compra a casa já com entrada + financiamento, e junta a renda</div>
                 <div class="big" id="years-c2">—</div>
                 <div class="date" id="date-c2">—</div>
+                <div class="ages" id="ages-c2"></div>
                 <div class="house" id="house-c2"></div>
                 <div class="note" id="note-c2"></div>
             </div>
@@ -346,6 +350,7 @@
                 <div class="tag">Vende SP e completa com o investido: casa quitada na hora, sem dívida, e rejunta a renda</div>
                 <div class="big" id="years-c3">—</div>
                 <div class="date" id="date-c3">—</div>
+                <div class="ages" id="ages-c3"></div>
                 <div class="house" id="house-c3"></div>
                 <div class="note" id="note-c3"></div>
             </div>
@@ -457,6 +462,16 @@
             const d = getStartDate();
             d.setMonth(d.getMonth() + Math.round(months));
             return MONTHS_PT[d.getMonth()] + ' ' + d.getFullYear();
+        }
+
+        // Idades no ano de chegada (em 2026: Steh 37, Ana 44).
+        const BASE_YEAR = 2026, STEH_AGE_BASE = 37, ANA_AGE_BASE = 44;
+        function agesAtMonths(months) {
+            if (!isFinite(months)) return null;
+            const d = getStartDate();
+            d.setMonth(d.getMonth() + Math.round(months));
+            const diff = d.getFullYear() - BASE_YEAR;
+            return { steh: STEH_AGE_BASE + diff, ana: ANA_AGE_BASE + diff };
         }
 
         // Quantos meses da data inicial até a data da venda escolhida.
@@ -756,6 +771,8 @@
             document.getElementById('date-' + key).textContent = res.cannotAfford
                 ? 'Não dá pra comprar à vista'
                 : (res.reached ? 'Meta em ' + dateFromStart(res.months) : 'Não atingível');
+            const ages = res.reached ? agesAtMonths(res.months) : null;
+            document.getElementById('ages-' + key).textContent = ages ? `Steh ${ages.steh} · Ana ${ages.ana} anos` : '';
             document.getElementById('house-' + key).textContent = res.housePrice
                 ? `🏠 Casa: ${formatCurrency(res.housePrice)} em ${dateFromStart(res.purchaseMonth)}`
                 : '';
@@ -829,6 +846,8 @@
             const stats = [];
             stats.push(statHTML(res.cannotAfford ? 'inviável' : fmtYears(res.years), 'Tempo até o objetivo'));
             stats.push(statHTML(res.reached ? dateFromStart(res.months) : '—', 'Data do objetivo'));
+            const ages = res.reached ? agesAtMonths(res.months) : null;
+            stats.push(statHTML(ages ? `${ages.steh} · ${ages.ana}` : '—', 'Idade na meta (Steh · Ana)'));
             stats.push(statHTML(res.housePrice ? formatCurrency(res.housePrice) : '—', 'Casa na compra' + (res.purchaseMonth != null ? ' (' + dateFromStart(res.purchaseMonth) + ')' : ''), true));
 
             // Meta por salário — corrigida pra data da aposentadoria deste cenário.
