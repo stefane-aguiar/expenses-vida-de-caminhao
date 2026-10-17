@@ -94,7 +94,8 @@
         .scenario-card .tag { color: #888; font-size: 0.72rem; margin-bottom: 14px; min-height: 28px; }
         .scenario-card .big { font-size: 2rem; font-weight: 700; color: #4ade80; line-height: 1; }
         .scenario-card .date { color: #bbb; font-size: 0.85rem; margin-top: 6px; }
-        .scenario-card .note { color: #93c5fd; font-size: 0.76rem; margin-top: 14px; line-height: 1.5; text-align: left; }
+        .scenario-card .house { color: #fdba74; font-size: 0.8rem; margin-top: 12px; line-height: 1.4; }
+        .scenario-card .note { color: #93c5fd; font-size: 0.76rem; margin-top: 12px; line-height: 1.5; text-align: left; }
         .scenario-card.unreachable .big { color: #f97316; }
 
         @media (max-width: 720px) {
@@ -287,6 +288,7 @@
                 <div class="tag">Segura o apê alugado e vende só no fim pra ajudar a comprar a casa</div>
                 <div class="big" id="years-default">—</div>
                 <div class="date" id="date-default">—</div>
+                <div class="house" id="house-default"></div>
                 <div class="note" id="note-default"></div>
             </div>
             <div class="scenario-card" id="card-c1">
@@ -294,6 +296,7 @@
                 <div class="tag">Vende SP agora, investe tudo e compra a casa à vista no fim</div>
                 <div class="big" id="years-c1">—</div>
                 <div class="date" id="date-c1">—</div>
+                <div class="house" id="house-c1"></div>
                 <div class="note" id="note-c1"></div>
             </div>
             <div class="scenario-card" id="card-c2">
@@ -301,6 +304,7 @@
                 <div class="tag">Vende SP, compra a casa já com entrada + financiamento, e junta os 2M</div>
                 <div class="big" id="years-c2">—</div>
                 <div class="date" id="date-c2">—</div>
+                <div class="house" id="house-c2"></div>
                 <div class="note" id="note-c2"></div>
             </div>
         </div>
@@ -440,6 +444,8 @@
             let cumInterestPaid = 0;        // juros pagos ao banco (C2)
             let payoffMonth = null;         // mês em que a dívida zerou (C2)
             let infeasible = false;         // algum mês em que o aporte ficou negativo
+            let housePrice = null;          // preço da casa na data da compra
+            let purchaseMonth = null;       // mês em que a casa é comprada
 
             const houseAt = (m) => cfg.houseToday * Math.pow(1 + cfg.gHouse, m);
 
@@ -483,6 +489,8 @@
                         financedOriginal = Math.max(0, price - cfg.saleValue); // entrada = valor da venda
                         debt = financedOriginal;
                         amortBase = financedOriginal / cfg.nParcelas;
+                        housePrice = price;
+                        purchaseMonth = m;
                     }
                 }
 
@@ -517,6 +525,13 @@
                 reached = reachedAt(m);
             }
 
+            // No Default e no C1 a casa é comprada no fim (quando o objetivo é atingido),
+            // já valorizada por todo esse tempo.
+            if (cfg.type !== 'c2' && reached) {
+                purchaseMonth = m;
+                housePrice = houseAt(m);
+            }
+
             return {
                 reached,
                 months: reached ? m : Infinity,
@@ -527,6 +542,8 @@
                 amortBase,
                 payoffMonth,
                 infeasible,
+                housePrice,
+                purchaseMonth,
             };
         }
 
@@ -552,6 +569,9 @@
         function setCard(key, res, note) {
             document.getElementById('years-' + key).textContent = fmtYears(res.years);
             document.getElementById('date-' + key).textContent = res.reached ? 'Meta em ' + dateFromStart(res.months) : 'Não atingível';
+            document.getElementById('house-' + key).textContent = res.housePrice
+                ? `🏠 Casa: ${formatCurrency(res.housePrice)} em ${dateFromStart(res.purchaseMonth)}`
+                : '';
             document.getElementById('note-' + key).textContent = note;
             document.getElementById('card-' + key).classList.toggle('unreachable', !res.reached);
         }
@@ -616,6 +636,7 @@
             const stats = [];
             stats.push(statHTML(fmtYears(res.years), 'Tempo até o objetivo'));
             stats.push(statHTML(res.reached ? dateFromStart(res.months) : '—', 'Data do objetivo'));
+            stats.push(statHTML(res.housePrice ? formatCurrency(res.housePrice) : '—', 'Casa na compra' + (res.purchaseMonth != null ? ' (' + dateFromStart(res.purchaseMonth) + ')' : ''), true));
 
             if (scenario === 'default') {
                 stats.push(statHTML(formatCurrency(inp.monthlyContribution), 'Aporte mensal'));
